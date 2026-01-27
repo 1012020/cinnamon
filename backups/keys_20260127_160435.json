@@ -1,0 +1,22 @@
+{
+  "VZgPYet3-C-cqm0-JN9tiF7F-fTaDOk4NSY4fXhyPME": {
+    "used": false,
+    "user_id": null,
+    "created_at": "2026-01-27T13:21:09.176720",
+    "redeemed_at": null
+  },
+  "1l7XeKvGvAFUixed4NE1YQKXCgaD9tetm25MkjYJiIU": {
+    "used": true,
+    "user_id": 1423665222870241422,
+    "created_at": "2026-01-27T13:36:51.958314",
+    "redeemed_at": "2026-01-27T13:39:09.310071",
+    "redemption_order": 1
+  },
+  "ioilOH13qr8i5UPVy-iuVqAml4ImRV_Dno_lT8eCuyE": {
+    "used": true,
+    "user_id": 1425197398816329778,
+    "created_at": "2026-01-27T13:40:47.375335",
+    "redeemed_at": "2026-01-27T13:42:14.227080",
+    "redemption_order": 2
+  }
+}
