@@ -1,0 +1,55 @@
+{
+  "total_commands": 32,
+  "commands": {
+    "hash": 7,
+    "img": 9,
+    "loud": 1,
+    "createchannels": 3,
+    "fullbait": 2,
+    "help": 1,
+    "2db": 1,
+    "mp3bait": 3,
+    "redeem": 4,
+    "genkey": 1
+  },
+  "users": {
+    "1425197398816329778": {
+      "username": "kingofcucks13",
+      "commands": 4,
+      "last_command": "2026-02-02T21:40:59.546628"
+    },
+    "1208836383733710952": {
+      "username": "ghostmanewashere",
+      "commands": 7,
+      "last_command": "2026-02-03T00:00:47.082119"
+    },
+    "1110764678558265404": {
+      "username": "thestreetss",
+      "commands": 6,
+      "last_command": "2026-02-02T23:56:02.562215"
+    },
+    "1053600471278956615": {
+      "username": "32tracks",
+      "commands": 2,
+      "last_command": "2026-02-03T04:53:07.335603"
+    },
+    "787860220030222336": {
+      "username": "kaiori",
+      "commands": 5,
+      "last_command": "2026-02-03T04:44:06.975024"
+    },
+    "794619423616532561": {
+      "username": "ftsf",
+      "commands": 3,
+      "last_command": "2026-02-03T05:14:00.200155"
+    },
+    "1423665222870241422": {
+      "username": "builderg1rl",
+      "commands": 5,
+      "last_command": "2026-02-03T06:54:40.384408"
+    }
+  },
+  "errors": {
+    "mp3bait": 1
+  }
+}

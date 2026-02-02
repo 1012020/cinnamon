@@ -4,6 +4,8 @@ import os
 import uuid
 import random
 import subprocess
+import json
+import tempfile
 from pydub import AudioSegment
 import config
 from cogs.utils.helpers import ASSET_CACHE
@@ -11,6 +13,8 @@ import numpy as np
 import soundfile as sf
 import pyloudnorm as pyln
 from scipy.signal import butter, lfilter
+from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 
 def process_intro(main_path, intro_path, output_path, export_format):
     main = AudioSegment.from_file(main_path)
@@ -53,20 +57,25 @@ def process_32mono(input_path, output_file, bait_path, add_watermark=True):
         out_f.write(tail_bytes)
 
 def process_compression(input_path, output_path):
+    """Compress file size significantly while maintaining good quality."""
     audio = AudioSegment.from_file(input_path)
-    input_size = os.path.getsize(input_path)
-    bitrates = ["128k", "96k", "64k", "48k", "32k", "16k"]
-    chosen_bitrate = bitrates[-1]
-    target_size = input_size * 0.60
-    duration_sec = len(audio) / 1000
-    for br in bitrates:
-        br_val = int(br.replace("k", "")) * 1000
-        est_size = (br_val * duration_sec) / 8
-        if est_size <= target_size:
-            chosen_bitrate = br
-            break
-    audio.export(output_path, format="mp3", bitrate=chosen_bitrate)
-    return chosen_bitrate
+    
+    # Get file extension to determine output format
+    ext = output_path.split('.')[-1].lower()
+    
+    # Use moderate compression for significant file size reduction
+    if ext == "mp3":
+        # Use 96kbps CBR for good quality and small size
+        audio.export(output_path, format="mp3", bitrate="96k")
+    elif ext == "ogg":
+        # Use quality level 0 for more compression
+        audio.export(output_path, format="ogg", parameters=["-q:a", "0"])
+    elif ext == "m4a":
+        # Use 96kbps AAC
+        audio.export(output_path, format="ipod", bitrate="96k")
+    else:
+        # Default: convert to mp3 at 96kbps
+        audio.export(output_path, format="mp3", bitrate="96k")
 
 def process_loud(input_path, output_path, export_format):
     audio = AudioSegment.from_file(input_path)
@@ -89,6 +98,24 @@ def process_2db(input_path, output_path, export_format):
 def process_nobass(input_path, output_path, export_format):
     audio = AudioSegment.from_file(input_path)
     (audio.high_pass_filter(300) + 4).export(output_path, format=export_format)
+
+def process_create_channels(input_path, output_path, num_channels):
+    """Create multi-channel audio by duplicating the input into specified number of channels."""
+    audio = AudioSegment.from_file(input_path)
+    
+    # Convert to mono first to ensure consistent source
+    if audio.channels > 1:
+        audio = audio.set_channels(1)
+    
+    # Get raw audio data
+    samples = np.array(audio.get_array_of_samples())
+    
+    # Create multi-channel array by duplicating samples
+    multi_channel = np.tile(samples, (num_channels, 1)).T
+    
+    # Export using soundfile for multi-channel support
+    import soundfile as sf
+    sf.write(output_path, multi_channel, audio.frame_rate, format='OGG', subtype='VORBIS')
 
 def process_convert(input_path, output_path, export_fmt):
     audio = AudioSegment.from_file(input_path)
@@ -262,3 +289,85 @@ def process_loudv2(input_path, output_path, export_format):
         
     seg = AudioSegment(data=raw_data, sample_width=2, frame_rate=sr, channels=channels)
     seg.export(output_path, format=export_format)
+
+def process_mp3bait(decoy_path, hidden_path, output_path):
+    """Create glitched MP3 with decoy and hidden audio. Target ~500 KB for hidden."""
+    TARGET_HIDDEN_SIZE = 500_000  # 500 KB
+    marker_size = 2048  # 2 KB marker
+    
+    def _get_duration(path):
+        """Get audio duration in seconds using ffprobe."""
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", path],
+            capture_output=True, text=True, check=True
+        )
+        return float(json.loads(result.stdout)["format"]["duration"])
+    
+    def _convert_decoy(path):
+        """Convert decoy to mono MP3."""
+        temp = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.mp3")
+        try:
+            audio = AudioSegment.from_file(path).set_channels(1)
+            audio.export(temp, format="mp3", parameters=["-map_metadata", "-1"])
+            with open(temp, "rb") as f:
+                return f.read()
+        finally:
+            if os.path.exists(temp):
+                os.remove(temp)
+    
+    def _convert_hidden_compressed(path):
+        """Compress hidden audio to ~500 KB."""
+        duration = _get_duration(path)
+        bitrate_bps = (TARGET_HIDDEN_SIZE * 8) / duration
+        bitrate_kbps = max(8, int(bitrate_bps / 1000))
+        
+        temp = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.mp3")
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", path, "-ar", "48000", "-ac", "2", 
+                 "-b:a", f"{bitrate_kbps}k", "-map_metadata", "-1", temp],
+                check=True, capture_output=True
+            )
+            with open(temp, "rb") as f:
+                return f.read()
+        finally:
+            if os.path.exists(temp):
+                os.remove(temp)
+    
+    # Convert both files
+    decoy = _convert_decoy(decoy_path)
+    hidden = _convert_hidden_compressed(hidden_path)
+    
+    # Write glitched MP3
+    with open(output_path, "wb") as f:
+        f.write(decoy)
+        # Write marker
+        marker = b"STOP"
+        remaining = marker_size - len(marker)
+        f.write(b"\x00" * (remaining // 2))
+        f.write(marker)
+        f.write(b"\xFF" * (remaining - remaining // 2))
+        f.write(hidden)
+
+def process_img_bait(image_path, audio_path, output_path):
+    """Embed audio file into PNG metadata."""
+    # Validate image file
+    if not image_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+        raise ValueError(f"Invalid image file: {image_path}")
+    
+    # Validate audio file
+    if not audio_path.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a', '.flac')):
+        raise ValueError(f"Invalid audio file: {audio_path}")
+    
+    # Open the base image
+    target_image = Image.open(image_path)
+    
+    # Prepare metadata
+    metadata = PngInfo()
+    
+    # Inject the raw binary data of the audio into the PNG metadata
+    with open(audio_path, "rb") as audio_file:
+        metadata.add_text("", audio_file.read())
+    
+    # Save the result
+    target_image.save(output_path, pnginfo=metadata)

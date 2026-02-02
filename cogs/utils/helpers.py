@@ -2,11 +2,20 @@ import os
 import functools
 import asyncio
 import random
+from datetime import datetime
 from pydub import AudioSegment
 import config
 
 # --- ASSETS ---
 ASSET_CACHE = {}
+
+def get_elapsed_time(bot, user_id):
+    """Get elapsed time for a user's current command"""
+    if user_id in bot.active_tasks and "start_time" in bot.active_tasks[user_id]:
+        start_time = bot.active_tasks[user_id]["start_time"]
+        elapsed = (datetime.now() - start_time).total_seconds()
+        return f"(took {elapsed:.1f}s)"
+    return ""
 
 def load_assets():
     try:
@@ -23,9 +32,23 @@ def load_assets():
 EXECUTOR = None
 
 async def run_blocking(func, *args, **kwargs):
+    global EXECUTOR
     loop = asyncio.get_running_loop()
     partial = functools.partial(func, *args, **kwargs)
-    return await loop.run_in_executor(EXECUTOR, partial)
+    try:
+        return await loop.run_in_executor(EXECUTOR, partial)
+    except Exception as e:
+        # If executor failed, try to recreate it
+        print(f"executor error: {e}, attempting to recreate...")
+        try:
+            import concurrent.futures
+            if EXECUTOR:
+                EXECUTOR.shutdown(wait=False)
+            EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+            return await loop.run_in_executor(EXECUTOR, partial)
+        except:
+            # Fallback: run in current thread
+            return partial()
 
 # --- FILE OPS ---
 def write_file(path, data):

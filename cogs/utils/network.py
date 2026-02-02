@@ -128,7 +128,7 @@ async def download_url_simple(session, url):
 async def download_file(ctx, url_arg, status_msg=None):
     target_url = None
     filename = "unknown.mp3"
-    if ctx.message.attachments:
+    if ctx.message.attachments and len(ctx.message.attachments) > 0:
         target_url = ctx.message.attachments[0].url
         filename = ctx.message.attachments[0].filename
     elif url_arg:
@@ -150,11 +150,32 @@ async def download_file(ctx, url_arg, status_msg=None):
 
     try:
         async with ctx.bot.session.get(target_url) as resp:
-            if resp.status != 200:
-                msg = "download failed."
+            if resp.status == 404:
+                msg = "error: file not found (404)"
                 if status_msg: await status_msg.edit(content=msg)
                 else: await ctx.send(msg)
                 return None, None
+            elif resp.status == 403:
+                msg = "error: access forbidden (403)"
+                if status_msg: await status_msg.edit(content=msg)
+                else: await ctx.send(msg)
+                return None, None
+            elif resp.status != 200:
+                msg = f"error: download failed (status {resp.status})"
+                if status_msg: await status_msg.edit(content=msg)
+                else: await ctx.send(msg)
+                return None, None
+            
+            # Check content length if available
+            content_length = resp.headers.get('content-length')
+            if content_length:
+                size_mb = int(content_length) / (1024 * 1024)
+                if size_mb > 10:
+                    msg = f"error: file size is {size_mb:.1f}mb, max is 10mb. use !compress"
+                    if status_msg: await status_msg.edit(content=msg)
+                    else: await ctx.send(msg)
+                    return None, None
+            
             with open(input_path, 'wb') as f:
                 async for chunk in resp.content.iter_chunked(64 * 1024):
                     f.write(chunk)
