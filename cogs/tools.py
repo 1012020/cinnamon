@@ -531,5 +531,97 @@ class ToolCommands(commands.Cog):
         except Exception as e:
             await send_error(ctx, e)
 
+    @commands.command(name='leaderboard', aliases=['lb', 'top'])
+    @commands.check(is_allowed_location)
+    async def leaderboard(self, ctx, limit: int = 10):
+        """Show top users by command usage"""
+        if limit < 1 or limit > 25:
+            limit = 10
+        
+        users = self.bot.command_stats.get("users", {})
+        if not users:
+            await ctx.send("no user data available yet.")
+            return
+        
+        # Sort users by command count
+        sorted_users = sorted(users.items(), key=lambda x: x[1].get("commands", 0), reverse=True)[:limit]
+        
+        embed = discord.Embed(title="🏆 leaderboard", description=f"top {limit} most active users", color=0xE1F6FF)
+        
+        leaderboard_text = []
+        for i, (user_id, data) in enumerate(sorted_users):
+            username = data.get("username", "unknown")
+            cmd_count = data.get("commands", 0)
+            
+            # Add medal emojis for top 3
+            if i == 0:
+                position = "🥇"
+            elif i == 1:
+                position = "🥈"
+            elif i == 2:
+                position = "🥉"
+            else:
+                position = f"**{i+1}.**"
+            
+            leaderboard_text.append(f"{position} {username} - `{cmd_count}` commands")
+        
+        embed.add_field(name="rankings", value="\n".join(leaderboard_text), inline=False)
+        
+        # Add user's rank if not in top list
+        user_rank = None
+        for i, (user_id, data) in enumerate(sorted(users.items(), key=lambda x: x[1].get("commands", 0), reverse=True)):
+            if int(user_id) == ctx.author.id:
+                user_rank = i + 1
+                break
+        
+        if user_rank and user_rank > limit:
+            user_cmds = users.get(str(ctx.author.id), {}).get("commands", 0)
+            embed.set_footer(text=f"Your rank: #{user_rank} with {user_cmds} commands")
+        
+        await ctx.send(embed=embed)
+
+    @commands.command(name='keyinfo')
+    @commands.check(is_allowed_location)
+    async def key_info(self, ctx):
+        """Show key statistics (admin only)"""
+        if ctx.author.id != 1423665222870241422:
+            await ctx.send("error: you don't have permission to view key info.")
+            return
+        
+        total_keys = len(self.generated_keys)
+        used_keys = sum(1 for data in self.generated_keys.values() if data["used"])
+        unused_keys = total_keys - used_keys
+        
+        # Get most recent redemptions
+        recent_redemptions = []
+        sorted_keys = sorted(
+            [(key, data) for key, data in self.generated_keys.items() if data["used"]],
+            key=lambda x: x[1].get("redeemed_at", ""),
+            reverse=True
+        )[:5]
+        
+        for key, data in sorted_keys:
+            user_id = data.get("user_id")
+            redeemed_at = data.get("redeemed_at", "N/A")
+            order = data.get("redemption_order", "N/A")
+            
+            try:
+                redeemed_dt = datetime.fromisoformat(redeemed_at)
+                redeemed_display = redeemed_dt.strftime("%Y-%m-%d %H:%M")
+            except:
+                redeemed_display = redeemed_at
+            
+            recent_redemptions.append(f"• UID #{order} - <@{user_id}> - {redeemed_display}")
+        
+        embed = discord.Embed(title="🔑 key statistics", color=0xE1F6FF)
+        
+        overview = f"• **total keys** - `{total_keys}`\n• **used keys** - `{used_keys}`\n• **unused keys** - `{unused_keys}`"
+        embed.add_field(name="overview", value=overview, inline=False)
+        
+        if recent_redemptions:
+            embed.add_field(name="recent redemptions", value="\n".join(recent_redemptions), inline=False)
+        
+        await ctx.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(ToolCommands(bot))

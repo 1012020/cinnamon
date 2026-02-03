@@ -14,6 +14,7 @@ class AudioCommands(commands.Cog):
         self.bot = bot
 
     @commands.command(name='download')
+    @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def download_sc_yt(self, ctx, url: str = None):
         from datetime import datetime
@@ -184,6 +185,7 @@ class AudioCommands(commands.Cog):
             if os.path.exists(intro_path): os.remove(intro_path)
 
     @commands.command(name='convert')
+    @commands.cooldown(1, 20, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def make_convert(self, ctx, arg1: str = None, arg2: str = None):
         from datetime import datetime
@@ -467,21 +469,25 @@ class AudioCommands(commands.Cog):
             if 'input_path' in locals() and os.path.exists(input_path): os.remove(input_path)
 
     @commands.command(name='loud')
+    @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def make_loud(self, ctx, url: str = None):
         await self._process_simple_effect(ctx, url, ap.process_loud, "applying 300db gain")
 
     @commands.command(name='loudv2')
+    @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def make_loudv2(self, ctx, url: str = None):
         await self._process_simple_effect(ctx, url, ap.process_loudv2, "applying vocal-forward loudness")
 
     @commands.command(name='2db')
+    @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def make_2db(self, ctx, url: str = None):
         await self._process_simple_effect(ctx, url, ap.process_2db, "normalizing to -2db")
 
     @commands.command(name='nobass')
+    @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.check(is_allowed_location)
     async def make_nobass(self, ctx, url: str = None):
         await self._process_simple_effect(ctx, url, ap.process_nobass, "removing bass")

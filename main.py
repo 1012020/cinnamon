@@ -146,6 +146,12 @@ async def on_command(ctx):
 @bot.event
 async def on_command_error(ctx, error):
     """Log all command errors"""
+    # Handle cooldown errors with friendly message
+    if isinstance(error, commands.CommandOnCooldown):
+        remaining = int(error.retry_after)
+        await ctx.send(f"⏱️ slow down! try again in {remaining} seconds.")
+        return
+    
     # Log with real user info
     try:
         error_msg = f"[{datetime.now().isoformat()}] User: {ctx.author} ({ctx.author.id}) | Command: {ctx.command} | Error: {str(error)}\n"
@@ -211,7 +217,7 @@ async def help_menu(ctx):
         
         embed.add_field(
             name="utilities",
-            value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing",
+            value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!leaderboard** - top users by usage\n• **!cancel** - cancel processing",
             inline=False
         )
         
@@ -259,7 +265,7 @@ async def preview_menu(ctx):
     
     embed.add_field(
         name="utilities",
-        value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing",
+        value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!leaderboard** - top users by usage\n• **!cancel** - cancel processing",
         inline=False
     )
     

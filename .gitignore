@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.venv
+venv/
+ENV/
+
+# Data files
+data/logs/
+data/backups/
+data/keys_copy.txt
+data/IDs.txt
+
+# Temporary files
+*.tmp
+*.log
+/tmp/
+stats_graph_*.png
+
+# Audio files (temporary processing)
+*.mp3
+*.ogg
+*.wav
+*.flac
+*.m4a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
