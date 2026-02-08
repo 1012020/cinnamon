@@ -1,55 +1,101 @@
 {
-  "total_commands": 32,
+  "total_commands": 489,
   "commands": {
-    "hash": 7,
-    "img": 9,
-    "loud": 1,
-    "createchannels": 3,
-    "fullbait": 2,
-    "help": 1,
+    "hash": 24,
+    "img": 108,
+    "loud": 37,
+    "createchannels": 31,
+    "fullbait": 32,
+    "help": 15,
     "2db": 1,
-    "mp3bait": 3,
-    "redeem": 4,
-    "genkey": 1
+    "mp3bait": 15,
+    "redeem": 9,
+    "genkey": 1,
+    "download": 32,
+    "compress": 35,
+    "stats": 3,
+    "32mono": 13,
+    "convert": 21,
+    "loudv2": 41,
+    "hex": 7,
+    "rape": 5,
+    "status": 1,
+    "intro": 6,
+    "nobass": 10,
+    "cancel": 3,
+    "createpreset": 16,
+    "preset": 14,
+    "presets": 8,
+    "presetdelete": 1
   },
   "users": {
     "1425197398816329778": {
       "username": "kingofcucks13",
-      "commands": 4,
-      "last_command": "2026-02-02T21:40:59.546628"
+      "commands": 44,
+      "last_command": "2026-02-08T13:53:49.049212"
     },
     "1208836383733710952": {
       "username": "ghostmanewashere",
-      "commands": 7,
-      "last_command": "2026-02-03T00:00:47.082119"
+      "commands": 53,
+      "last_command": "2026-02-08T13:52:42.359241"
     },
     "1110764678558265404": {
-      "username": "thestreetss",
-      "commands": 6,
-      "last_command": "2026-02-02T23:56:02.562215"
+      "username": "tunkaset",
+      "commands": 34,
+      "last_command": "2026-02-08T15:15:23.777872"
     },
     "1053600471278956615": {
       "username": "32tracks",
-      "commands": 2,
-      "last_command": "2026-02-03T04:53:07.335603"
+      "commands": 116,
+      "last_command": "2026-02-08T11:33:53.049704"
     },
     "787860220030222336": {
       "username": "kaiori",
-      "commands": 5,
-      "last_command": "2026-02-03T04:44:06.975024"
+      "commands": 6,
+      "last_command": "2026-02-04T16:22:37.648569"
     },
     "794619423616532561": {
       "username": "ftsf",
-      "commands": 3,
-      "last_command": "2026-02-03T05:14:00.200155"
+      "commands": 12,
+      "last_command": "2026-02-08T10:20:09.995188"
     },
     "1423665222870241422": {
       "username": "builderg1rl",
+      "commands": 202,
+      "last_command": "2026-02-08T15:20:23.575241"
+    },
+    "1249721512265781358": {
+      "username": "6w9w",
       "commands": 5,
-      "last_command": "2026-02-03T06:54:40.384408"
+      "last_command": "2026-02-05T09:01:38.821590"
+    },
+    "1054673293917036544": {
+      "username": "timeizzmoneyho",
+      "commands": 1,
+      "last_command": "2026-02-04T22:14:55.718157"
+    },
+    "384172491750244353": {
+      "username": "p5gj",
+      "commands": 7,
+      "last_command": "2026-02-05T17:24:32.633236"
+    },
+    "785259144189181972": {
+      "username": "jewlymon",
+      "commands": 7,
+      "last_command": "2026-02-08T10:48:02.744524"
+    },
+    "747934443389321327": {
+      "username": "wx1q",
+      "commands": 2,
+      "last_command": "2026-02-07T12:25:10.284065"
     }
   },
   "errors": {
-    "mp3bait": 1
+    "mp3bait": 1,
+    "rape": 2,
+    "download": 1,
+    "fullbait": 3,
+    "img": 1,
+    "createpreset": 2
   }
 }

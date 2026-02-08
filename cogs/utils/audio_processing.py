@@ -16,10 +16,16 @@ from scipy.signal import butter, lfilter
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 
-def process_intro(main_path, intro_path, output_path, export_format):
+def process_intro(main_path, intro_path, output_path, export_format, preserve_channels=False):
     main = AudioSegment.from_file(main_path)
     intro = AudioSegment.from_file(intro_path)
     combined = intro + main
+    # Downmix to stereo for MP3 exports by default, but allow callers to preserve channels
+    try:
+        if (not preserve_channels) and isinstance(export_format, str) and export_format.lower() == "mp3" and combined.channels > 2:
+            combined = combined.set_channels(2)
+    except Exception:
+        pass
     combined.export(output_path, format=export_format)
 
 def process_32mono(input_path, output_file, bait_path, add_watermark=True):
@@ -57,25 +63,55 @@ def process_32mono(input_path, output_file, bait_path, add_watermark=True):
         out_f.write(tail_bytes)
 
 def process_compression(input_path, output_path):
-    """Compress file size significantly while maintaining good quality."""
-    audio = AudioSegment.from_file(input_path)
+    """Compress file to 96kbps at 44100Hz for significant size reduction."""
+    import shutil
     
-    # Get file extension to determine output format
+    original_size = os.path.getsize(input_path)
     ext = output_path.split('.')[-1].lower()
     
-    # Use moderate compression for significant file size reduction
-    if ext == "mp3":
-        # Use 96kbps CBR for good quality and small size
-        audio.export(output_path, format="mp3", bitrate="96k")
-    elif ext == "ogg":
-        # Use quality level 0 for more compression
-        audio.export(output_path, format="ogg", parameters=["-q:a", "0"])
-    elif ext == "m4a":
-        # Use 96kbps AAC
-        audio.export(output_path, format="ipod", bitrate="96k")
-    else:
-        # Default: convert to mp3 at 96kbps
-        audio.export(output_path, format="mp3", bitrate="96k")
+    # Aggressive compression to 96kbps at 44100Hz
+    target_bitrate = 96
+    target_sample_rate = 44100
+    
+    # Load and compress audio
+    try:
+        audio = AudioSegment.from_file(input_path)
+    except Exception as e:
+        print(f"Failed to load audio: {e}")
+        shutil.copy(input_path, output_path)
+        return
+    
+    # Always resample to 44100Hz
+    audio = audio.set_frame_rate(target_sample_rate)
+    
+    # Compress to target bitrate
+    temp_output = "temp_compress_" + output_path
+    
+    try:
+        if ext == "mp3":
+            audio.export(temp_output, format="mp3", bitrate=f"{target_bitrate}k")
+        elif ext == "ogg":
+            audio.export(temp_output, format="ogg", parameters=["-b:a", f"{target_bitrate}k"])
+        elif ext == "m4a":
+            audio.export(temp_output, format="ipod", bitrate=f"{target_bitrate}k")
+        elif ext == "wav":
+            # WAV is lossless, convert to MP3 for compression
+            audio.export(temp_output, format="mp3", bitrate=f"{target_bitrate}k")
+        else:
+            # For other formats, export as MP3
+            audio.export(temp_output, format="mp3", bitrate=f"{target_bitrate}k")
+        
+        # Use compressed version if it exists
+        if os.path.exists(temp_output):
+            shutil.move(temp_output, output_path)
+        else:
+            shutil.copy(input_path, output_path)
+    except Exception as e:
+        print(f"Compression failed: {e}")
+        # Fallback to original
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+        shutil.copy(input_path, output_path)
 
 def process_loud(input_path, output_path, export_format):
     audio = AudioSegment.from_file(input_path)
@@ -101,21 +137,32 @@ def process_nobass(input_path, output_path, export_format):
 
 def process_create_channels(input_path, output_path, num_channels):
     """Create multi-channel audio by duplicating the input into specified number of channels."""
-    audio = AudioSegment.from_file(input_path)
-    
-    # Convert to mono first to ensure consistent source
-    if audio.channels > 1:
-        audio = audio.set_channels(1)
-    
-    # Get raw audio data
-    samples = np.array(audio.get_array_of_samples())
-    
-    # Create multi-channel array by duplicating samples
-    multi_channel = np.tile(samples, (num_channels, 1)).T
-    
-    # Export using soundfile for multi-channel support
-    import soundfile as sf
-    sf.write(output_path, multi_channel, audio.frame_rate, format='OGG', subtype='VORBIS')
+    try:
+        # Load audio and convert to mono
+        audio = AudioSegment.from_file(input_path)
+        if audio.channels > 1:
+            audio = audio.set_channels(1)
+        
+        # Create list of the same mono audio repeated num_channels times
+        channel_list = [audio for _ in range(num_channels)]
+        
+        # Combine into multi-channel audio
+        multi_channel_audio = AudioSegment.from_mono_audiosegments(*channel_list)
+        
+        # Export with explicit channel count
+        multi_channel_audio.export(
+            output_path,
+            format="ogg",
+            codec="libvorbis",
+            parameters=["-ac", str(num_channels)]
+        )
+            
+    except Exception as e:
+        # Log the error and re-raise with more context
+        print(f"Error in process_create_channels: {e}")
+        import traceback
+        traceback.print_exc()
+        raise Exception(f"Failed to create {num_channels} channel audio: {str(e)}")
 
 def process_convert(input_path, output_path, export_fmt):
     audio = AudioSegment.from_file(input_path)
@@ -280,12 +327,13 @@ def process_loudv2(input_path, output_path, export_format):
 
     audio_int16 = (audio * 32767).astype(np.int16)
     
-    if audio.shape[1] == 2:
-        raw_data = audio_int16.flatten().tobytes()
-        channels = 2
-    else:
-        raw_data = audio_int16.tobytes()
+    # Preserve actual channel count. If mono, duplicate to stereo above.
+    if audio.ndim == 1:
         channels = 1
+        raw_data = audio_int16.tobytes()
+    else:
+        channels = audio.shape[1]
+        raw_data = audio_int16.flatten().tobytes()
         
     seg = AudioSegment(data=raw_data, sample_width=2, frame_rate=sr, channels=channels)
     seg.export(output_path, format=export_format)
@@ -354,20 +402,31 @@ def process_img_bait(image_path, audio_path, output_path):
     # Validate image file
     if not image_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
         raise ValueError(f"Invalid image file: {image_path}")
-    
-    # Validate audio file
-    if not audio_path.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a', '.flac')):
-        raise ValueError(f"Invalid audio file: {audio_path}")
-    
+    # Validate audio file: only allow MP3 for img bait
+    if not audio_path.lower().endswith('.mp3'):
+        raise ValueError(f"Invalid audio file for img bait (must be .mp3): {audio_path}")
+
     # Open the base image
     target_image = Image.open(image_path)
-    
-    # Prepare metadata
+
+    # Ensure audio is MP3 stereo. If mono, convert to stereo; re-encode to MP3 bytes.
+    try:
+        audio = AudioSegment.from_file(audio_path)
+    except Exception as e:
+        raise ValueError(f"Failed to load audio for embedding: {e}")
+
+    # Force stereo
+    if audio.channels < 2:
+        audio = audio.set_channels(2)
+
+    # Export audio to bytes buffer as MP3 (strip metadata)
+    buf = io.BytesIO()
+    audio.export(buf, format="mp3", parameters=["-map_metadata", "-1"]) 
+    audio_bytes = buf.getvalue()
+
+    # Prepare PNG metadata and inject audio bytes
     metadata = PngInfo()
-    
-    # Inject the raw binary data of the audio into the PNG metadata
-    with open(audio_path, "rb") as audio_file:
-        metadata.add_text("", audio_file.read())
-    
+    metadata.add_text("", audio_bytes)
+
     # Save the result
     target_image.save(output_path, pnginfo=metadata)

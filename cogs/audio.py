@@ -337,8 +337,10 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_fullbait(self, ctx, url: str = None):
         from datetime import datetime
-        # Check if user has the required role
-        if not any(r.id == 1464787461719720133 for r in ctx.author.roles) if ctx.author.roles else True:
+        # Check if user has the required role (by ID)
+        author_roles = getattr(ctx.author, "roles", []) or []
+        has_required_role = any(getattr(r, "id", None) == 1464787461719720133 for r in author_roles)
+        if not has_required_role:
             await ctx.send("error: you don't have the required role to use this command.")
             return
         
@@ -402,12 +404,12 @@ class AudioCommands(commands.Cog):
             should_watermark = not any(r.id == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
             await run_blocking(ap.process_fullbait, input_path, output_file, bait_path, add_watermark=should_watermark)
             
-            # Check file size (10MB max)
+            # Check file size (17.5MB max for fullbait)
             file_size = os.path.getsize(output_file)
-            max_size = 10 * 1024 * 1024  # 10MB in bytes
+            max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 10MB. use !compress")
+                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
                 if os.path.exists(input_path): os.remove(input_path)
                 if os.path.exists(output_file): os.remove(output_file)
                 if ctx.author.id in self.bot.active_tasks:
@@ -524,20 +526,30 @@ class AudioCommands(commands.Cog):
             clean_name = clean_filename(original_filename)
             output_path = f"{clean_name}_{num_channels}ch.ogg"
             
+            print(f"DEBUG: About to call process_create_channels with {input_path}, {output_path}, {num_channels}")
             await run_blocking(ap.process_create_channels, input_path, output_path, num_channels)
+            print(f"DEBUG: process_create_channels completed successfully")
             
             # Show file info
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            await msg.edit(content="uploading...")
-            await ctx.send(
-                f"created {num_channels} channel audio ({file_size:.2f}mb) {elapsed}",
-                file=discord.File(output_path)
-            )
-            await msg.delete()
+            # Check file size - only upload if 15MB or less
+            if file_size > 15:
+                await msg.edit(content=f"error: file size ({file_size:.2f}mb) is too large to upload on site. max is 15mb, use !compress")
+            else:
+                await msg.edit(content="uploading...")
+                await ctx.send(
+                    f"created {num_channels} channel audio ({file_size:.2f}mb) {elapsed}",
+                    file=discord.File(output_path)
+                )
+                await msg.delete()
+            
             if os.path.exists(output_path): os.remove(output_path)
         except Exception as e:
+            print(f"DEBUG: Exception caught in make_create_channels: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             await send_error(ctx, e, status_msg=msg)
         finally:
             if ctx.author.id in self.bot.active_tasks:
@@ -695,7 +707,7 @@ class AudioCommands(commands.Cog):
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             if 'hidden_path' in locals() and os.path.exists(hidden_path): os.remove(hidden_path)
-            if 'stitched_temp' in locals() and os.path.exists(stitched_temp): os.remove(stitched_temp)
+            
             if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
 
     @commands.command(name='img')
@@ -787,27 +799,55 @@ class AudioCommands(commands.Cog):
             self.bot.active_tasks[ctx.author.id]["files"].append(hidden_path)
         
         output_file = f"img_bait_{uuid.uuid4().hex[:8]}.png"
-        stitched_temp = f"stitched_{uuid.uuid4().hex[:8]}.mp3"
-        
+
+        # Force the stitched audio used for img bait to be MP3 (stereo only).
+        # We still try to detect channels for logging/fallback, but always use MP3.
         try:
-            # Stitch cinnamon.mp3 + hidden audio together
-            await msg.edit(content="stitching audio...")
-            await run_blocking(ap.process_intro, hidden_path, cinnamon_path, stitched_temp, "mp3")
-            
+            from pydub import AudioSegment
+            hidden_ch = AudioSegment.from_file(hidden_path).channels
+        except Exception:
+            hidden_ch = 2
+
+        try:
             await msg.edit(content="embedding audio into image...")
-            await run_blocking(ap.process_img_bait, selected_image_path, stitched_temp, output_file)
-            
+
+            # Require MP3 input for the image embed command
+            if not hidden_path.lower().endswith('.mp3'):
+                await msg.edit(content="error: audio must be an .mp3 file.")
+                return
+
+            # Embed raw MP3 bytes into PNG metadata using PIL
+            from PIL import Image
+            from PIL.PngImagePlugin import PngInfo
+
+            try:
+                target_image = Image.open(selected_image_path)
+            except Exception as e:
+                await msg.edit(content=f"error: failed to open image: {e}")
+                return
+
+            metadata = PngInfo()
+            try:
+                with open(hidden_path, "rb") as f:
+                    audio_bytes = f.read()
+            except Exception as e:
+                await msg.edit(content=f"error: failed to read audio file: {e}")
+                return
+
+            metadata.add_text("", audio_bytes)
+            target_image.save(output_file, pnginfo=metadata)
+
             # Check file size
             file_size = os.path.getsize(output_file)
             size_mb = file_size / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
             await msg.edit(content="uploading...")
-            await ctx.send(
-                f"done! final size: {size_mb:.2f}mb {elapsed}",
-                file=discord.File(output_file)
-            )
-            await msg.delete()
+            download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
+            if download_link:
+                await msg.edit(content=f"done! final size: {size_mb:.2f}mb {elapsed}\n{download_link}")
+            else:
+                await msg.edit(content="error: upload failed.")
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:
@@ -815,7 +855,7 @@ class AudioCommands(commands.Cog):
                 del self.bot.active_tasks[ctx.author.id]
             if 'hidden_path' in locals() and os.path.exists(hidden_path): os.remove(hidden_path)
             if 'custom_image_path' in locals() and custom_image_path and os.path.exists(custom_image_path): os.remove(custom_image_path)
-            if 'stitched_temp' in locals() and os.path.exists(stitched_temp): os.remove(stitched_temp)
+            
             if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
 
 async def setup(bot):

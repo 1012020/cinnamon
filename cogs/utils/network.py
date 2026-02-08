@@ -170,8 +170,8 @@ async def download_file(ctx, url_arg, status_msg=None):
             content_length = resp.headers.get('content-length')
             if content_length:
                 size_mb = int(content_length) / (1024 * 1024)
-                if size_mb > 10:
-                    msg = f"error: file size is {size_mb:.1f}mb, max is 10mb. use !compress"
+                if size_mb > 17.5:
+                    msg = f"error: file size is {size_mb:.1f}mb, max is 17.5mb. use !compress"
                     if status_msg: await status_msg.edit(content=msg)
                     else: await ctx.send(msg)
                     return None, None

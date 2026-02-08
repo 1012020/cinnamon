@@ -60,12 +60,21 @@ def clean_filename(fname):
     return "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip().replace(" ", "_")
 
 # --- DISCORD CHECKS ---
-def is_allowed_location(ctx):
+async def is_allowed_location(ctx):
     if ctx.guild and ctx.guild.id == config.ALLOWED_GUILD_ID and ctx.channel.id == config.ALLOWED_CHANNEL_ID:
         return True
     else:
-        invite_link = f"https://discord.com/channels/{config.ALLOWED_GUILD_ID}/{config.ALLOWED_CHANNEL_ID}"
-        asyncio.create_task(ctx.send(f"sorry, i can't do that here, maybe in {invite_link}?"))
+        try:
+            # For createchannels command, post in the allowed channel instead
+            if ctx.command and ctx.command.name == 'createchannels':
+                allowed_channel = ctx.bot.get_channel(config.ALLOWED_CHANNEL_ID)
+                if allowed_channel:
+                    await allowed_channel.send(f"{ctx.author.mention} tried to use !createchannels in the wrong channel")
+            else:
+                invite_link = f"https://discord.com/channels/{config.ALLOWED_GUILD_ID}/{config.ALLOWED_CHANNEL_ID}"
+                await ctx.send(f"sorry, i can't do that here, maybe in {invite_link}?")
+        except:
+            pass  # If we can't send the message, just silently fail the check
         return False
 
 async def send_error(ctx, e, status_msg=None):

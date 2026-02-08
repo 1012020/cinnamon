@@ -211,7 +211,7 @@ async def help_menu(ctx):
         
         embed.add_field(
             name="utilities",
-            value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing",
+            value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing\n• **!createpreset** - save a preset (e.g. !createpreset name loud img)\n• **!presets** - list your presets\n• **!preset <name>** - run a preset",
             inline=False
         )
         
@@ -259,7 +259,7 @@ async def preview_menu(ctx):
     
     embed.add_field(
         name="utilities",
-        value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing",
+        value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing\n• **!createpreset** - save a preset (e.g. !createpreset name loud img)\n• **!presets** - list presets\n• **!preset <name>** - run a preset",
         inline=False
     )
     

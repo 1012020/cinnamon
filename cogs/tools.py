@@ -8,12 +8,20 @@ from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, wr
 import sys
 sys.path.append('..')
 import config
+from cogs.utils.network import download_file, upload_file
+from cogs.utils import audio_processing as ap
+import random
+import shutil
+import os
+import uuid
 
 class ToolCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.keys_file = "data/keys.json"
         self.generated_keys = self._load_keys()
+        self.presets_file = "data/presets.json"
+        self.presets = self._load_presets()
     
     def _load_keys(self):
         """Load keys from file if it exists"""
@@ -24,6 +32,34 @@ class ToolCommands(commands.Cog):
             except:
                 return {}
         return {}
+
+    def _load_presets(self):
+        if os.path.exists(self.presets_file):
+            try:
+                with open(self.presets_file, 'r') as f:
+                    raw = json.load(f)
+                    # Normalize legacy format (name -> [steps]) to {name: {'owner': None, 'steps': [...]}}
+                    normalized = {}
+                    for k, v in raw.items():
+                        if isinstance(v, list):
+                            normalized[k] = {"owner": None, "steps": v}
+                        elif isinstance(v, dict) and 'steps' in v:
+                            normalized[k] = v
+                        else:
+                            # unknown format, skip
+                            continue
+                    return normalized
+            except:
+                return {}
+        return {}
+
+    def _save_presets(self):
+        try:
+            # Save in the normalized dict format
+            with open(self.presets_file, 'w') as f:
+                json.dump(self.presets, f, indent=2)
+        except Exception:
+            pass
     
     def _save_keys(self):
         """Save keys to file"""
@@ -314,6 +350,272 @@ class ToolCommands(commands.Cog):
         
         await ctx.send(embed=embed)
 
+    @commands.command(name='createpreset')
+    @commands.check(is_allowed_location)
+    async def create_preset(self, ctx, name: str = None, *tokens):
+        """Create or overwrite a preset. Usage: !createpreset name step1 step2 ..."""
+        if not name:
+            await ctx.send("error: please provide a preset name and at least one step.")
+            return
+        if not tokens:
+            await ctx.send("error: please provide at least one processing step.")
+            return
+        key = name.lower()
+        self.presets[key] = {"owner": ctx.author.id, "steps": [t.lower() for t in tokens]}
+        self._save_presets()
+        await ctx.send(f"preset '{key}' saved. steps: {', '.join(self.presets[key]['steps'])}")
+
+    @commands.command(name='presets')
+    @commands.check(is_allowed_location)
+    async def list_presets(self, ctx):
+        """List saved presets."""
+        if not self.presets:
+            await ctx.send("no presets saved.")
+            return
+        embed = discord.Embed(title="presets", color=0xE1F6FF)
+        embed.set_footer(text="Use !preset <name> to run a preset")
+
+        lines = []
+        for name, v in self.presets.items():
+            steps = v['steps'] if isinstance(v, dict) and 'steps' in v else (v if isinstance(v, list) else [])
+            owner_id = v.get('owner') if isinstance(v, dict) else None
+            owner_name = "unknown"
+            if owner_id:
+                try:
+                    user = self.bot.get_user(owner_id) or await self.bot.fetch_user(owner_id)
+                    owner_name = f"{user.name}#{user.discriminator}" if getattr(user, 'discriminator', None) is not None else user.name
+                except Exception:
+                    owner_name = str(owner_id)
+
+            steps_str = ' '.join(steps)
+            if len(steps_str) > 100:
+                steps_str = steps_str[:97] + '...'
+
+            # Escape angle brackets to prevent mentions/links
+            safe_name = name.replace('<', '\u200b<').replace('>', '>\u200b')
+            safe_steps = steps_str.replace('<', '\u200b<').replace('>', '>\u200b')
+
+            lines.append(f"{safe_name} | {len(steps)} steps | {owner_name} | {safe_steps}")
+
+        # Chunk lines into embed fields without spamming (max ~1024 chars per field)
+        if not lines:
+            await ctx.send("no presets saved.")
+            return
+
+        field_lines = []
+        current = []
+        cur_len = 0
+        for ln in lines:
+            if cur_len + len(ln) + 1 > 900 and current:
+                field_lines.append('\n'.join(current))
+                current = [ln]
+                cur_len = len(ln) + 1
+            else:
+                current.append(ln)
+                cur_len += len(ln) + 1
+        if current:
+            field_lines.append('\n'.join(current))
+
+        for idx, block in enumerate(field_lines):
+            # use invisible name for compact look after the title
+            field_name = "\u200b" if idx > 0 else "\u200b"
+            embed.add_field(name=field_name, value=block, inline=False)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(name='preset')
+    @commands.check(is_allowed_location)
+    async def run_preset(self, ctx, name: str = None, url: str = None):
+        """Run a saved preset. Usage: !preset name [url_or_attach]
+        The command downloads an attachment or URL (discord CDN only) and applies the preset steps in order."""
+        if not name:
+            await ctx.send("error: please provide a preset name.")
+            return
+        key = name.lower()
+        if key not in self.presets:
+            await ctx.send("error: preset not found.")
+            return
+
+        # support both normalized dict format and legacy list format
+        entry = self.presets.get(key)
+        if isinstance(entry, dict) and 'steps' in entry:
+            steps = entry['steps']
+        elif isinstance(entry, list):
+            steps = entry
+        else:
+            await ctx.send("error: preset is malformed.")
+            return
+        msg = await ctx.send("initializing preset...")
+        # Download initial input
+        try:
+            in_path, original_filename = await download_file(ctx, url, status_msg=msg)
+            if not in_path:
+                return
+            current_path = in_path
+            # default desired format is original ext
+            if '.' in (original_filename or ''):
+                desired_format = original_filename.split('.')[-1].lower()
+            else:
+                desired_format = 'mp3'
+
+            for i, step in enumerate(steps):
+                # format specifier
+                if step in ('mp3','ogg','wav','flac','m4a','aac'):
+                    desired_format = step
+                    continue
+
+                await msg.edit(content=f"running step {i+1}/{len(steps)}: {step}...")
+
+                # effects that accept (input_path, output_path, export_format)
+                format_effects = {
+                    'loud': ap.process_loud,
+                    'loudv2': ap.process_loudv2,
+                    '2db': ap.process_2db,
+                    'nobass': ap.process_nobass,
+                    'convert': ap.process_convert
+                }
+
+                if step in format_effects:
+                    out_path = f"out_{uuid.uuid4().hex}.{desired_format}"
+                    await run_blocking(format_effects[step], current_path, out_path, desired_format)
+                    # cleanup previous
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    continue
+
+                if step == 'compress':
+                    out_path = f"out_{uuid.uuid4().hex}.{desired_format}"
+                    await run_blocking(ap.process_compression, current_path, out_path)
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    continue
+
+                if step == 'fullbait':
+                    # require role to use fullbait (same check as original command)
+                    author_roles = getattr(ctx.author, "roles", []) or []
+                    has_required_role = any(getattr(r, "id", None) == 1464787461719720133 for r in author_roles)
+                    if not has_required_role:
+                        await msg.edit(content="error: you don't have the required role to use fullbait.")
+                        return
+
+                    # find fullbaits dir
+                    fullbaits_dir = os.path.join(os.path.dirname(config.BAIT_DIRECTORY), "fullbaits")
+                    if not os.path.exists(fullbaits_dir): fullbaits_dir = "assets/fullbaits"
+                    if not os.path.exists(fullbaits_dir):
+                        await msg.edit(content="error: fullbaits directory not found.")
+                        return
+
+                    all_baits = [f for f in os.listdir(fullbaits_dir) if f.endswith('.ogg')]
+                    if not all_baits:
+                        await msg.edit(content="error: no .ogg files in fullbaits directory.")
+                        return
+
+                    selected_bait = random.choice(all_baits)
+                    bait_path = os.path.join(fullbaits_dir, selected_bait)
+                    out_path = f"fullbait_{uuid.uuid4().hex}.ogg"
+                    should_watermark = not any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
+                    await run_blocking(ap.process_fullbait, current_path, out_path, bait_path, add_watermark=should_watermark)
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    continue
+
+                if step == '32mono' or step == '32-mono' or step == '32_mon o':
+                    # ensure ogg input (original command required .ogg)
+                    if not current_path.lower().endswith('.ogg'):
+                        tmp_ogg = f"out_{uuid.uuid4().hex}.ogg"
+                        await run_blocking(ap.process_convert, current_path, tmp_ogg, 'ogg')
+                        try:
+                            if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                        except: pass
+                        current_path = tmp_ogg
+
+                    # choose a bait from config.BAIT_DIRECTORY
+                    bait_dir = config.BAIT_DIRECTORY if os.path.exists(config.BAIT_DIRECTORY) else None
+                    if not bait_dir:
+                        # try assets folder fallback
+                        bait_dir = os.path.join('assets', 'fullbaits') if os.path.exists(os.path.join('assets', 'fullbaits')) else None
+                    if not bait_dir:
+                        await msg.edit(content="error: bait directory not found for 32mono step.")
+                        return
+                    all_baits = [f for f in os.listdir(bait_dir) if os.path.isfile(os.path.join(bait_dir, f))]
+                    valid_baits = [f for f in all_baits if f.lower().endswith(('.mp3', '.ogg', '.wav', '.flac'))]
+                    if not valid_baits:
+                        await msg.edit(content="error: no audio files in bait directory for 32mono.")
+                        return
+                    selected_bait_name = random.choice(valid_baits)
+                    selected_bait_path = os.path.join(bait_dir, selected_bait_name)
+                    out_path = f"32mono_{uuid.uuid4().hex}.mp3"
+                    should_watermark = not any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
+                    await run_blocking(ap.process_32mono, current_path, out_path, selected_bait_path, add_watermark=should_watermark)
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    continue
+
+                if step == 'img':
+                    # ensure mp3 for embedding
+                    if not current_path.lower().endswith('.mp3'):
+                        tmp_mp3 = f"out_{uuid.uuid4().hex}.mp3"
+                        await run_blocking(ap.process_convert, current_path, tmp_mp3, 'mp3')
+                        try:
+                            if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                        except: pass
+                        current_path = tmp_mp3
+
+                    # choose random image
+                    img_dir = os.path.join('assets', 'img baits')
+                    if not os.path.exists(img_dir): img_dir = 'assets/img baits'
+                    if not os.path.exists(img_dir):
+                        await msg.edit(content="error: img baits directory not found for img step.")
+                        return
+                    images = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f)) and f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+                    if not images:
+                        await msg.edit(content="error: no images available for img step.")
+                        return
+                    selected = random.choice(images)
+                    selected_path = os.path.join(img_dir, selected)
+                    out_path = f"img_{uuid.uuid4().hex}.png"
+                    await run_blocking(ap.process_img_bait, selected_path, current_path, out_path)
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    continue
+
+                # unknown step
+                await msg.edit(content=f"error: unknown step '{step}' in preset.")
+                return
+
+            # upload final file
+            await msg.edit(content="uploading final result...")
+            link = await upload_file(self.bot.session, current_path, status_msg=msg)
+            if link:
+                await ctx.send(f"done: {link}")
+            else:
+                # fallback: try to send file directly
+                try:
+                    await ctx.send(file=discord.File(current_path))
+                except Exception as e:
+                    await send_error(ctx, e, status_msg=msg)
+        except Exception as e:
+            await send_error(ctx, e, status_msg=msg)
+        finally:
+            try:
+                if 'current_path' in locals() and os.path.exists(current_path): os.remove(current_path)
+            except: pass
+            try:
+                if 'in_path' in locals() and os.path.exists(in_path): os.remove(in_path)
+            except: pass
+            if ctx.author.id in self.bot.active_tasks:
+                del self.bot.active_tasks[ctx.author.id]
+
     @commands.command(name='stats')
     @commands.check(is_allowed_location)
     async def show_stats(self, ctx):
@@ -485,6 +787,32 @@ class ToolCommands(commands.Cog):
             os.remove(graph_path)
         else:
             await ctx.send(embed=embed)
+
+    @commands.command(name='presetdelete')
+    @commands.check(is_allowed_location)
+    async def delete_preset(self, ctx, name: str = None):
+        """Delete a preset you created. Usage: !presetdelete name"""
+        if not name:
+            await ctx.send("error: please provide a preset name to delete.")
+            return
+        key = name.lower()
+        if key not in self.presets:
+            await ctx.send("error: preset not found.")
+            return
+        entry = self.presets.get(key)
+        owner = entry.get('owner') if isinstance(entry, dict) else None
+        # allow deletion if owner matches or user has owner role
+        is_owner_role = any(getattr(r, 'id', None) == 1458951003725369345 for r in ctx.author.roles)
+        if owner is not None and owner != ctx.author.id and not is_owner_role:
+            await ctx.send("error: you can only delete presets you created.")
+            return
+        # delete and save
+        try:
+            del self.presets[key]
+            self._save_presets()
+            await ctx.send(f"preset '{key}' deleted.")
+        except Exception as e:
+            await send_error(ctx, e)
 
     @commands.command(name='cancel')
     async def cancel_task(self, ctx):
