@@ -5,7 +5,7 @@ import random
 import shutil
 import uuid
 import config
-from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, clean_filename, get_elapsed_time
+from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, clean_filename, get_elapsed_time, send_file_checked, MAX_UPLOAD_BYTES
 from cogs.utils.network import download_file, download_url_simple, upload_file, download_sc_yt_logic
 from cogs.utils import audio_processing as ap
 
@@ -50,7 +50,7 @@ class AudioCommands(commands.Cog):
                     elapsed = get_elapsed_time(self.bot, ctx.author.id)
                     
                     await msg.edit(content="uploading...")
-                    await ctx.send(f"pekora.zip ({file_size:.2f}mb) {elapsed}", file=discord.File(upload_path))
+                    await send_file_checked(ctx, upload_path, caption=f"pekora.zip ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                     await msg.delete()
                     if os.path.exists(upload_path): os.remove(upload_path)
                 except Exception as e:
@@ -90,7 +90,7 @@ class AudioCommands(commands.Cog):
                     elapsed = get_elapsed_time(self.bot, ctx.author.id)
                     
                     await msg.edit(content="uploading...")
-                    await ctx.send(f"downloaded ({file_size:.2f}mb) {elapsed}", file=discord.File(upload_path))
+                    await send_file_checked(ctx, upload_path, caption=f"downloaded ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                     await msg.delete()
                     if os.path.exists(upload_path): os.remove(upload_path)
                 except Exception as e:
@@ -172,7 +172,7 @@ class AudioCommands(commands.Cog):
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
             await msg.edit(content="uploading...")
-            await ctx.send(f"done ({file_size:.2f}mb) {elapsed}", file=discord.File(output_path))
+            await send_file_checked(ctx, output_path, caption=f"done ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
         except Exception as e:
@@ -233,7 +233,7 @@ class AudioCommands(commands.Cog):
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
             await msg.edit(content="uploading...")
-            await ctx.send(f"converted to {target_ext} ({file_size:.2f}mb) {elapsed}", file=discord.File(output_path))
+            await send_file_checked(ctx, output_path, caption=f"converted to {target_ext} ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
         except Exception as e: await send_error(ctx, e, status_msg=msg)
@@ -307,12 +307,12 @@ class AudioCommands(commands.Cog):
             should_watermark = not any(r.id == config.ISRAELITE_ROLE_ID for r in ctx.author.roles) if ctx.author.roles else True if ctx.author.roles else True
             await run_blocking(ap.process_32mono, input_path, output_file, selected_bait_path, add_watermark=should_watermark)
             
-            # Check file size (10MB max)
+            # Check file size (17.5MB max)
             file_size = os.path.getsize(output_file)
-            max_size = 10 * 1024 * 1024  # 10MB in bytes
+            max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 10MB. use !compress")
+                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
                 if os.path.exists(input_path): os.remove(input_path)
                 if os.path.exists(output_file): os.remove(output_file)
                 if ctx.author.id in self.bot.active_tasks:
@@ -459,7 +459,7 @@ class AudioCommands(commands.Cog):
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
             await msg.edit(content="uploading...")
-            await ctx.send(f"done ({file_size:.2f}mb) {elapsed}", file=discord.File(output_path))
+            await send_file_checked(ctx, output_path, caption=f"done ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
         except Exception as e: await send_error(ctx, e, status_msg=msg)
@@ -534,15 +534,12 @@ class AudioCommands(commands.Cog):
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            # Check file size - only upload if 15MB or less
-            if file_size > 15:
-                await msg.edit(content=f"error: file size ({file_size:.2f}mb) is too large to upload on site. max is 15mb, use !compress")
+            # Check file size - only upload if <= MAX_UPLOAD_BYTES
+            if file_size * 1024 * 1024 > MAX_UPLOAD_BYTES:
+                await msg.edit(content=f"error: file size ({file_size:.2f}mb) is too large to upload on site. max is 17.5mb, use !compress")
             else:
                 await msg.edit(content="uploading...")
-                await ctx.send(
-                    f"created {num_channels} channel audio ({file_size:.2f}mb) {elapsed}",
-                    file=discord.File(output_path)
-                )
+                await send_file_checked(ctx, output_path, caption=f"created {num_channels} channel audio ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                 await msg.delete()
             
             if os.path.exists(output_path): os.remove(output_path)
@@ -586,10 +583,7 @@ class AudioCommands(commands.Cog):
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
             await msg.edit(content="uploading...")
-            await ctx.send(
-                f"compressed: {original_size:.2f}mb → {compressed_size:.2f}mb ({reduction:.1f}% reduction) {elapsed}",
-                file=discord.File(output_path)
-            )
+            await send_file_checked(ctx, output_path, caption=f"compressed: {original_size:.2f}mb → {compressed_size:.2f}mb ({reduction:.1f}% reduction) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
         except Exception as e:
@@ -682,12 +676,12 @@ class AudioCommands(commands.Cog):
             await msg.edit(content="processing glitched MP3 (compressing hidden to ~500 KB)...")
             await run_blocking(ap.process_mp3bait, decoy_path, stitched_temp, output_file)
             
-            # Check file size (10MB max)
+            # Check file size (17.5MB max)
             file_size = os.path.getsize(output_file)
-            max_size = 10 * 1024 * 1024  # 10MB in bytes
+            max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 10MB. use !compress")
+                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
                 if 'hidden_path' in locals() and os.path.exists(hidden_path): os.remove(hidden_path)
                 if 'stitched_temp' in locals() and os.path.exists(stitched_temp): os.remove(stitched_temp)
                 if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
@@ -837,17 +831,19 @@ class AudioCommands(commands.Cog):
             metadata.add_text("", audio_bytes)
             target_image.save(output_file, pnginfo=metadata)
 
-            # Check file size
+            # Check file size (17.5MB max)
             file_size = os.path.getsize(output_file)
             size_mb = file_size / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
-            
-            await msg.edit(content="uploading...")
-            download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
-            if download_link:
-                await msg.edit(content=f"done! final size: {size_mb:.2f}mb {elapsed}\n{download_link}")
+            if file_size > int(17.5 * 1024 * 1024):
+                await msg.edit(content=f"error: file size is {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
             else:
-                await msg.edit(content="error: upload failed.")
+                await msg.edit(content="uploading...")
+                download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
+                if download_link:
+                    await msg.edit(content=f"done! final size: {size_mb:.2f}mb {elapsed}\n{download_link}")
+                else:
+                    await msg.edit(content="error: upload failed.")
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:

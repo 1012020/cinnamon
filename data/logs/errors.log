@@ -52,3 +52,16 @@
 [2026-02-08T15:02:36.117166] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "presetcreate" is not found
 [2026-02-08T15:12:32.149483] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "presetcreate" is not found
 [2026-02-08T15:20:24.025462] User: builderg1rl (1423665222870241422) | Command: createpreset | Error: The check functions for command createpreset failed.
+[2026-02-08T16:49:12.612615] User: p5gj (384172491750244353) | Command: loud | Error: The check functions for command loud failed.
+[2026-02-08T16:49:18.864438] User: p5gj (384172491750244353) | Command: loud | Error: The check functions for command loud failed.
+[2026-02-08T16:51:08.176622] User: p5gj (384172491750244353) | Command: 32mono | Error: The check functions for command 32mono failed.
+[2026-02-08T18:54:51.387397] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "!!!!!" is not found
+[2026-02-08T19:52:15.098299] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-08T19:53:03.396107] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-08T19:53:42.355492] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-08T19:54:02.828596] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-08T19:56:55.106712] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-08T19:57:35.420980] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "embed" is not found
+[2026-02-09T03:08:02.482284] User: ftsf (794619423616532561) | Command: None | Error: Command "cmss" is not found
+[2026-02-09T07:17:28.716281] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "delete" is not found
+[2026-02-09T08:08:09.966587] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "deletepreset" is not found

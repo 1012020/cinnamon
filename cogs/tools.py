@@ -4,7 +4,7 @@ import os
 import json
 import secrets
 from datetime import datetime
-from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, write_file, protected_id
+from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, write_file, protected_id, send_file_checked
 import sys
 sys.path.append('..')
 import config
@@ -16,6 +16,72 @@ import os
 import uuid
 
 class ToolCommands(commands.Cog):
+    @commands.command(name='embed')
+    async def embed_icc_command(self, ctx, *args):
+        # Restrict to channel 1469978323667910810
+        if ctx.channel.id != 1469978323667910810:
+            await ctx.send("error: this command can only be used in <#1469978323667910810>.")
+            return
+
+        # Parse arguments for 'saveas' option
+        save_as = None
+        image_url = None
+        if args and args[0].lower() == 'saveas' and len(args) >= 3:
+            save_as = args[1]
+            image_url = args[2]
+        elif args:
+            image_url = args[0]
+
+        msg = await ctx.send("processing image...")
+        input_path = f"input_{ctx.author.id}.png"
+        output_path = save_as if save_as else f"output_{ctx.author.id}.png"
+        icc_profile = os.path.join('assets', 'iccp', 'custom.icc')
+        try:
+            # Download from attachment or URL
+            if ctx.message.attachments:
+                attachment = ctx.message.attachments[0]
+                if not attachment.filename.lower().endswith('.png'):
+                    await msg.edit(content="error: only PNG images are supported.")
+                    return
+                await attachment.save(input_path)
+            elif image_url:
+                if not (image_url.lower().endswith('.png') or ('.png?' in image_url.lower())):
+                    await msg.edit(content="error: only PNG images are supported.")
+                    return
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_url) as resp:
+                        if resp.status != 200:
+                            await msg.edit(content="error: failed to download image from URL.")
+                            return
+                        with open(input_path, 'wb') as f:
+                            f.write(await resp.read())
+            else:
+                await msg.edit(content="error: please attach a PNG image or provide a direct PNG URL.")
+                return
+
+            # Import the embedder
+            from cogs.utils.icc_embedder import embed_icc_profile
+            await run_blocking(embed_icc_profile, input_path, output_path, icc_profile)
+
+            # Send the result
+            await send_file_checked(
+                ctx,
+                output_path,
+                caption="done! output with ICC profile embedded.\n\nsave as > upload, do not copy image",
+                status_msg=msg
+            )
+        except Exception as e:
+            await send_error(ctx, e, status_msg=msg)
+        finally:
+            if os.path.exists(input_path):
+                os.remove(input_path)
+            # Only delete output if not using saveas
+            if not save_as and os.path.exists(output_path):
+                os.remove(output_path)
+        # (duplicate block removed)
+            if os.path.exists(output_path):
+                os.remove(output_path)
     def __init__(self, bot):
         self.bot = bot
         self.keys_file = "data/keys.json"
@@ -360,6 +426,10 @@ class ToolCommands(commands.Cog):
         if not tokens:
             await ctx.send("error: please provide at least one processing step.")
             return
+        # enforce a maximum of 7 steps per preset
+        if len(tokens) > 7:
+            await ctx.send("error: too many steps; maximum is 7.")
+            return
         key = name.lower()
         self.presets[key] = {"owner": ctx.author.id, "steps": [t.lower() for t in tokens]}
         self._save_presets()
@@ -445,7 +515,15 @@ class ToolCommands(commands.Cog):
         else:
             await ctx.send("error: preset is malformed.")
             return
-        msg = await ctx.send("initializing preset...")
+        # if preset contains fullbait, run status and final result in DMs to avoid posting in channel
+        dm_mode = any((isinstance(s, str) and s.strip().split()[0] == 'fullbait') for s in steps)
+        if dm_mode:
+            try:
+                msg = await ctx.author.send("initializing preset...")
+            except Exception:
+                msg = await ctx.send("initializing preset...")
+        else:
+            msg = await ctx.send("initializing preset...")
         # Download initial input
         try:
             in_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -457,7 +535,6 @@ class ToolCommands(commands.Cog):
                 desired_format = original_filename.split('.')[-1].lower()
             else:
                 desired_format = 'mp3'
-
             for i, step in enumerate(steps):
                 # format specifier
                 if step in ('mp3','ogg','wav','flac','m4a','aac'):
@@ -484,6 +561,39 @@ class ToolCommands(commands.Cog):
                     except: pass
                     current_path = out_path
                     continue
+
+                # createchannels step: e.g. 'createchannels 32'
+                if step.startswith('createchannels'):
+                    parts = step.split()
+                    if len(parts) == 2 and parts[1].isdigit():
+                        num_channels = int(parts[1])
+                        out_path = f"channels_{uuid.uuid4().hex}.wav"
+                        await run_blocking(ap.process_create_channels, current_path, out_path, num_channels)
+                        try:
+                            if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                        except: pass
+                        current_path = out_path
+                        continue
+                    else:
+                        await msg.edit(content="error: createchannels step must be in format 'createchannels <num_channels>'")
+                        return
+
+                # mp3bait step: e.g. 'mp3bait decoy.mp3 hidden.mp3'
+                if step.startswith('mp3bait'):
+                    parts = step.split()
+                    if len(parts) == 3:
+                        decoy_path = parts[1]
+                        hidden_path = parts[2]
+                        out_path = f"mp3bait_{uuid.uuid4().hex}.mp3"
+                        await run_blocking(ap.process_mp3bait, decoy_path, hidden_path, out_path)
+                        try:
+                            if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                        except: pass
+                        current_path = out_path
+                        continue
+                    else:
+                        await msg.edit(content="error: mp3bait step must be in format 'mp3bait <decoy_path> <hidden_path>'")
+                        return
 
                 if step == 'compress':
                     out_path = f"out_{uuid.uuid4().hex}.{desired_format}"
@@ -597,11 +707,20 @@ class ToolCommands(commands.Cog):
             await msg.edit(content="uploading final result...")
             link = await upload_file(self.bot.session, current_path, status_msg=msg)
             if link:
-                await ctx.send(f"done: {link}")
+                try:
+                    if dm_mode:
+                        await ctx.author.send(f"done: {link}")
+                    else:
+                        await ctx.send(f"{ctx.author.mention} done: {link}")
+                except Exception as e:
+                    await send_error(ctx, e, status_msg=msg)
             else:
                 # fallback: try to send file directly
                 try:
-                    await ctx.send(file=discord.File(current_path))
+                    if dm_mode:
+                        await ctx.author.send(file=discord.File(current_path))
+                    else:
+                        await ctx.send(content=f"{ctx.author.mention} done:", file=discord.File(current_path))
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
         except Exception as e:

@@ -5,6 +5,7 @@ import random
 from datetime import datetime
 from pydub import AudioSegment
 import config
+import discord
 
 # --- ASSETS ---
 ASSET_CACHE = {}
@@ -132,3 +133,49 @@ def protected_id(audio_id):
         parts.append(char)
         
     return "".join(parts)
+
+
+# --- UPLOAD GUARD ---
+MAX_UPLOAD_BYTES = int(17.5 * 1024 * 1024)  # 17.5 MB in bytes
+
+
+async def send_file_checked(ctx, file_path, caption=None, status_msg=None, to_dm=False):
+    """Send a file after enforcing the global MAX_UPLOAD_BYTES limit.
+
+    Returns True on success, False on failure (and posts an error message).
+    """
+    try:
+        if not os.path.exists(file_path):
+            msg = "error: file not found."
+            if status_msg:
+                await status_msg.edit(content=msg)
+            else:
+                await ctx.send(msg)
+            return False
+
+        file_size = os.path.getsize(file_path)
+        if file_size > MAX_UPLOAD_BYTES:
+            size_mb = file_size / (1024 * 1024)
+            msg = f"error: file size is {size_mb:.2f}MB, max is 17.5MB. use !compress"
+            if status_msg:
+                await status_msg.edit(content=msg)
+            else:
+                await ctx.send(msg)
+            return False
+
+        # Attempt to send
+        if to_dm:
+            await ctx.author.send(caption or "", file=discord.File(file_path))
+        else:
+            await ctx.send(caption or "", file=discord.File(file_path))
+        return True
+    except discord.Forbidden:
+        msg = "error: couldn't send DM. please enable DMs from server members."
+        if status_msg:
+            await status_msg.edit(content=msg)
+        else:
+            await ctx.send(msg)
+        return False
+    except Exception as e:
+        await send_error(ctx, e, status_msg=status_msg)
+        return False
