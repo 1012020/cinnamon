@@ -535,6 +535,7 @@ class ToolCommands(commands.Cog):
                 desired_format = original_filename.split('.')[-1].lower()
             else:
                 desired_format = 'mp3'
+            stereo_label = None
             for i, step in enumerate(steps):
                 # format specifier
                 if step in ('mp3','ogg','wav','flac','m4a','aac'):
@@ -635,6 +636,28 @@ class ToolCommands(commands.Cog):
                     current_path = out_path
                     continue
 
+                if step == 'stereobait':
+                    # choose effect1 from stereobait_files and build 32-channel file
+                    stereobait_dir = os.path.join(os.path.dirname(config.BAIT_DIRECTORY), "stereobait_files")
+                    if not os.path.exists(stereobait_dir): stereobait_dir = os.path.join('assets', 'stereobait_files')
+                    if not os.path.exists(stereobait_dir):
+                        await msg.edit(content="error: stereobait_files directory not found for preset.")
+                        return
+                    all_choices = [f for f in os.listdir(stereobait_dir) if os.path.isfile(os.path.join(stereobait_dir, f)) and f.lower().endswith(('.ogg', '.mp3', '.wav', '.flac', '.m4a'))]
+                    if not all_choices:
+                        await msg.edit(content="error: no audio files in stereobait_files directory for preset.")
+                        return
+                    selected_name = random.choice(all_choices)
+                    effect1 = os.path.join(stereobait_dir, selected_name)
+                    out_path = f"stereobait_{uuid.uuid4().hex}.ogg"
+                    await run_blocking(ap.process_stereobait, effect1, current_path, out_path)
+                    try:
+                        if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
+                    except: pass
+                    current_path = out_path
+                    stereo_label = selected_name
+                    continue
+
                 if step == '32mono' or step == '32-mono' or step == '32_mon o':
                     # ensure ogg input (original command required .ogg)
                     if not current_path.lower().endswith('.ogg'):
@@ -703,24 +726,56 @@ class ToolCommands(commands.Cog):
                 await msg.edit(content=f"error: unknown step '{step}' in preset.")
                 return
 
+            # check final file size before uploading
+            try:
+                size_mb = os.path.getsize(current_path) / (1024 * 1024)
+            except Exception:
+                size_mb = 0
+
+            if size_mb > 17.5:
+                try:
+                    await msg.edit(content="it's over 17.5mb, cut down your file")
+                except:
+                    try: await ctx.send("it's over 17.5mb, cut down your file")
+                    except: pass
+                return
+
             # upload final file
             await msg.edit(content="uploading final result...")
             link = await upload_file(self.bot.session, current_path, status_msg=msg)
             if link:
                 try:
-                    if dm_mode:
-                        await ctx.author.send(f"done: {link}")
+                    if stereo_label:
+                        text = (f"{ctx.author.mention} done: {link}\n"
+                                f"when uploading, call it {stereo_label}\n"
+                                "works best on kornet")
+                        if dm_mode:
+                            await ctx.author.send(text)
+                        else:
+                            await ctx.send(text)
                     else:
-                        await ctx.send(f"{ctx.author.mention} done: {link}")
+                        if dm_mode:
+                            await ctx.author.send(f"done: {link}")
+                        else:
+                            await ctx.send(f"{ctx.author.mention} done: {link}")
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
             else:
                 # fallback: try to send file directly
                 try:
-                    if dm_mode:
-                        await ctx.author.send(file=discord.File(current_path))
+                    if stereo_label:
+                        caption = (f"{ctx.author.mention} done:\n"
+                                   f"when uploading, call it {stereo_label}\n"
+                                   "works best on kornet")
+                        if dm_mode:
+                            await ctx.author.send(content=caption, file=discord.File(current_path, filename=stereo_label))
+                        else:
+                            await ctx.send(content=caption, file=discord.File(current_path, filename=stereo_label))
                     else:
-                        await ctx.send(content=f"{ctx.author.mention} done:", file=discord.File(current_path))
+                        if dm_mode:
+                            await ctx.author.send(file=discord.File(current_path))
+                        else:
+                            await ctx.send(content=f"{ctx.author.mention} done:", file=discord.File(current_path))
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
         except Exception as e:
@@ -734,6 +789,80 @@ class ToolCommands(commands.Cog):
             except: pass
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
+
+    @commands.command(name='stereobait')
+    @commands.check(is_allowed_location)
+    async def stereobait(self, ctx, url: str = None):
+        """Create a 32-channel stereobait using a random asset as effect1 and
+        the provided file (attachment or discord CDN url) as effect2."""
+        msg = await ctx.send("creating stereobait...")
+        in_path = None
+        out_path = None
+        try:
+            in_path, original = await download_file(ctx, url, status_msg=msg)
+            if not in_path:
+                return
+
+            # locate stereobait assets
+            stereobait_dir = r"C:\Users\User\Desktop\folder where every other folder is\coding stuff ;3\cinnamon\optimized cinnamon\assets\stereobait_files"
+            if not os.path.exists(stereobait_dir):
+                stereobait_dir = os.path.join('assets', 'stereobait_files')
+            if not os.path.exists(stereobait_dir):
+                await msg.edit(content="error: stereobait_files directory not found.")
+                return
+
+            candidates = [f for f in os.listdir(stereobait_dir) if os.path.isfile(os.path.join(stereobait_dir, f)) and f.lower().endswith(('.ogg', '.mp3', '.wav', '.flac', '.m4a'))]
+            if not candidates:
+                await msg.edit(content="error: no audio files in stereobait_files directory.")
+                return
+            selected_name = random.choice(candidates)
+            effect1 = os.path.join(stereobait_dir, selected_name)
+            out_path = f"stereobait_{uuid.uuid4().hex}.ogg"
+
+            await run_blocking(ap.process_stereobait, effect1, in_path, out_path)
+
+            # check final size and refuse upload if too large
+            try:
+                size_mb = os.path.getsize(out_path) / (1024 * 1024)
+            except Exception:
+                size_mb = 0
+
+            if size_mb > 17.5:
+                try:
+                    await msg.edit(content="it's over 17.5mb, cut down your file")
+                except:
+                    try: await ctx.send("it's over 17.5mb, cut down your file")
+                    except: pass
+                return
+
+            await msg.edit(content="uploading final result...")
+            link = await upload_file(self.bot.session, out_path, status_msg=msg)
+            if link:
+                try:
+                    text = (f"{ctx.author.mention} done: {link}\n"
+                            f"when uploading, call it {selected_name}\n"
+                            "works best on kornet")
+                    await ctx.send(text)
+                except Exception as e:
+                    await send_error(ctx, e, status_msg=msg)
+            else:
+                try:
+                    caption = (f"{ctx.author.mention} done:\n"
+                               f"when uploading, call it {selected_name}\n"
+                               "works best on kornet")
+                    await ctx.send(content=caption, file=discord.File(out_path, filename=selected_name))
+                except Exception as e:
+                    await send_error(ctx, e, status_msg=msg)
+
+        except Exception as e:
+            await send_error(ctx, e, status_msg=msg)
+        finally:
+            try:
+                if in_path and os.path.exists(in_path): os.remove(in_path)
+            except: pass
+            try:
+                if out_path and os.path.exists(out_path): os.remove(out_path)
+            except: pass
 
     @commands.command(name='stats')
     @commands.check(is_allowed_location)
@@ -787,23 +916,10 @@ class ToolCommands(commands.Cog):
                         continue
                 
                 if hourly_counts:
-                    # Sort by time
-                    sorted_hours = sorted(hourly_counts.items())
-                    hours = [h[0] for h in sorted_hours]
-                    counts = [h[1] for h in sorted_hours]
-                    
-                    # Create graph with clean dark theme
-                    fig, ax = plt.subplots(figsize=(14, 6), facecolor='#2b2d31')
-                    ax.set_facecolor('#1e1f22')
-                    
-                    # Convert datetime to numeric for proper interpolation
-                    import matplotlib.dates as mdates
-                    import numpy as np
-                    
                     if len(hours) > 2:
                         # Convert datetimes to numeric values
                         hours_num = mdates.date2num(hours)
-                        
+
                         # Create smooth interpolation
                         from scipy.interpolate import make_interp_spline
                         x_smooth = np.linspace(hours_num[0], hours_num[-1], 300)
@@ -814,12 +930,12 @@ class ToolCommands(commands.Cog):
                         else:
                             # Not enough points for spline, use linear
                             y_smooth = np.interp(x_smooth, hours_num, counts)
-                        
+
                         # Plot smooth line
                         ax.plot_date(x_smooth, y_smooth, '-', linewidth=3, color='#5865f2', zorder=3, 
                                     solid_capstyle='round', antialiased=True)
                         ax.fill_between(x_smooth, y_smooth, alpha=0.25, color='#5865f2', zorder=2)
-                        
+
                         # Add dots at actual data points
                         ax.plot_date(hours_num, counts, 'o', markersize=8, color='#5865f2', 
                                     markeredgecolor='#ffffff', markeredgewidth=2, zorder=5)

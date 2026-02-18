@@ -1,0 +1,21 @@
+{
+  "tssuck": {
+    "owner": 1208836383733710952,
+    "steps": [
+      "loud",
+      "loudv2",
+      "loud",
+      "loudv2",
+      "loud",
+      "convert",
+      "mp3"
+    ]
+  }
+  ,
+  "stereobait": {
+    "owner": null,
+    "steps": [
+      "stereobait"
+    ]
+  }
+}

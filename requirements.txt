@@ -1,0 +1,10 @@
+discord.py
+aiohttp
+yt-dlp
+pydub
+Pillow
+numpy
+scipy
+soundfile
+pyloudnorm
+

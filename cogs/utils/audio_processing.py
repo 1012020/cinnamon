@@ -65,28 +65,32 @@ def process_32mono(input_path, output_file, bait_path, add_watermark=True):
 def process_compression(input_path, output_path):
     """Compress file to 96kbps at 44100Hz for significant size reduction."""
     import shutil
-    
     original_size = os.path.getsize(input_path)
     ext = output_path.split('.')[-1].lower()
-    
+
     # Aggressive compression to 96kbps at 44100Hz
     target_bitrate = 96
     target_sample_rate = 44100
-    
+
     # Load and compress audio
     try:
         audio = AudioSegment.from_file(input_path)
     except Exception as e:
         print(f"Failed to load audio: {e}")
-        shutil.copy(input_path, output_path)
+        try:
+            shutil.copy(input_path, output_path)
+        except Exception:
+            pass
         return
-    
+
     # Always resample to 44100Hz
     audio = audio.set_frame_rate(target_sample_rate)
-    
-    # Compress to target bitrate
-    temp_output = "temp_compress_" + output_path
-    
+
+    # Create a safe temp filename in system temp dir
+    import tempfile
+    temp_dir = tempfile.gettempdir()
+    temp_output = os.path.join(temp_dir, f"temp_compress_{uuid.uuid4().hex}.{ext}")
+
     try:
         if ext == "mp3":
             audio.export(temp_output, format="mp3", bitrate=f"{target_bitrate}k")
@@ -100,18 +104,41 @@ def process_compression(input_path, output_path):
         else:
             # For other formats, export as MP3
             audio.export(temp_output, format="mp3", bitrate=f"{target_bitrate}k")
-        
+
         # Use compressed version if it exists
         if os.path.exists(temp_output):
-            shutil.move(temp_output, output_path)
+            try:
+                shutil.move(temp_output, output_path)
+            except Exception:
+                # fallback: copy and try to remove temp
+                try:
+                    shutil.copy(temp_output, output_path)
+                except Exception:
+                    pass
+                try:
+                    os.remove(temp_output)
+                except Exception:
+                    pass
         else:
-            shutil.copy(input_path, output_path)
+            try:
+                shutil.copy(input_path, output_path)
+            except Exception:
+                pass
     except Exception as e:
         print(f"Compression failed: {e}")
-        # Fallback to original
-        if os.path.exists(temp_output):
-            os.remove(temp_output)
-        shutil.copy(input_path, output_path)
+        # Fallback to original, but avoid raising on Windows file locks
+        try:
+            if os.path.exists(temp_output):
+                try:
+                    os.remove(temp_output)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        try:
+            shutil.copy(input_path, output_path)
+        except Exception:
+            pass
 
 def process_loud(input_path, output_path, export_format):
     audio = AudioSegment.from_file(input_path)
@@ -396,6 +423,75 @@ def process_mp3bait(decoy_path, hidden_path, output_path):
         f.write(marker)
         f.write(b"\xFF" * (remaining - remaining // 2))
         f.write(hidden)
+
+
+def process_stereobait(effect1_path, effect2_path, out_path, ffmpeg_bin=None):
+    """Build a 32-channel OGG where first two channels are from effect1
+    (two mono channels) and remaining 30 channels come from effect2
+    (duplicated/alternated)."""
+    from pydub import AudioSegment
+    import numpy as np
+    import shutil
+    import subprocess
+
+    seg1 = AudioSegment.from_file(effect1_path)
+    seg2 = AudioSegment.from_file(effect2_path)
+
+    # Normalize to 16-bit PCM and seg1's sample rate
+    target_rate = seg1.frame_rate
+    seg1 = seg1.set_frame_rate(target_rate).set_sample_width(2)
+    seg2 = seg2.set_frame_rate(target_rate).set_sample_width(2)
+
+    # split or duplicate for seg1 channels
+    if seg1.channels == 1:
+        e1_ch1 = e1_ch2 = seg1
+    else:
+        splits = seg1.split_to_mono()
+        e1_ch1 = splits[0]
+        e1_ch2 = splits[1] if len(splits) > 1 else splits[0]
+
+    # prepare 30 channels from seg2
+    if seg2.channels == 1:
+        e2_mono = seg2
+        e2_chs = [e2_mono] * 30
+    else:
+        s = seg2.split_to_mono()
+        a = s[0]
+        b = s[1] if len(s) > 1 else s[0]
+        e2_chs = [(a if i % 2 == 0 else b) for i in range(30)]
+
+    chs = [e1_ch1, e1_ch2] + e2_chs
+
+    # Convert to numpy int16 arrays and ensure same length
+    arrs = [np.array(c.get_array_of_samples(), dtype=np.int16) for c in chs]
+    minlen = min(len(a) for a in arrs)
+    arrs = [a[:minlen] for a in arrs]
+
+    # Stack into (samples, channels)
+    stacked = np.stack(arrs, axis=1)
+    pcm_bytes = stacked.astype(np.int16).tobytes()
+
+    ffmpeg_bin = ffmpeg_bin or shutil.which("ffmpeg")
+    if not ffmpeg_bin:
+        raise RuntimeError("ffmpeg not found on PATH")
+
+    if not out_path.lower().endswith('.ogg'):
+        raise RuntimeError("output must be .ogg")
+
+    cmd = [
+        ffmpeg_bin, '-y',
+        '-f', 's16le',
+        '-ar', str(target_rate),
+        '-ac', '32',
+        '-i', 'pipe:0',
+        '-c:a', 'libvorbis',
+        out_path
+    ]
+
+    proc = subprocess.run(cmd, input=pcm_bytes, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out_text = proc.stdout.decode('utf-8', errors='replace') if isinstance(proc.stdout, (bytes, bytearray)) else str(proc.stdout)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {out_text}")
 
 def process_img_bait(image_path, audio_path, output_path):
     """Embed audio file into PNG metadata."""
