@@ -1,0 +1,78 @@
+{"timestamp":"2026-03-05T15:58:07.940973","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:00:35.453795","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:01:12.771847","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:01:13.898738","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:02:18.864509","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:02:19.895763","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:05:44.183483","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:05:45.282485","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:07:38.507711","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:07:39.610257","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:09:08.099570","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:09:09.185730","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:19:18.488119","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:19:19.630501","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:32:13.742901","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:32:14.767125","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:42:44.133245","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:42:49.408993","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:46:54.306127","level":"ERROR","message":"Command error: revoke - Member \"jRsxCKEXdhoFvvUDQj608J5qrmOy3TzDJc5RDEFjJhs\" not found.","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-05T16:47:42.134705","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T16:47:47.508986","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-05T17:16:37.344405","level":"ERROR","message":"Command error: 32mono - The check functions for command 32mono failed.","logger":"cinnamon","context":{"user_id":"1110764678558265404","username":"sac.mp3"}}
+{"timestamp":"2026-03-05T18:55:57.427492","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-05T18:55:58.520939","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T05:20:58.586459","level":"ERROR","message":"Command error: unknown - Command \"reedem\" is not found","logger":"cinnamon","context":{"user_id":"1375888788802375821","username":"egorkarecords."}}
+{"timestamp":"2026-03-06T05:28:14.797967","level":"ERROR","message":"Command error: 2db - The check functions for command 2db failed.","logger":"cinnamon","context":{"user_id":"1392892548032368803","username":"n6y5"}}
+{"timestamp":"2026-03-06T14:04:35.612301","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:04:42.796190","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:07:03.546160","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:07:04.614796","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:08:06.326758","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:08:07.331903","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:09:54.084573","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:09:55.252035","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:10:55.374593","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:10:56.525064","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:13:53.708217","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:13:54.764859","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:17:10.416104","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:17:11.580022","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:18:18.141014","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:18:19.233024","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:21:46.191501","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:21:47.345211","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:24:56.946991","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:24:58.165064","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:26:18.551774","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:26:19.597791","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:37:28.227462","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T14:37:29.376943","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T15:36:32.059305","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T15:36:37.706089","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:33:01.971887","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:33:03.862816","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:36:47.931564","level":"ERROR","message":"Command error: unknown - Command \"achievments\" is not found","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-06T21:38:37.609995","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:38:39.027698","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:40:03.464352","level":"ERROR","message":"Command error: unknown - Command \"community\" is not found","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-06T21:42:33.387712","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:42:34.951607","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:43:03.887577","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:43:05.533009","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:43:43.819721","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:43:45.186721","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:45:14.494931","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:45:15.763265","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:46:23.259946","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:46:24.398073","level":"INFO","message":"Bot shutting down","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:46:50.704549","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:46:51.701095","level":"INFO","message":"Bot shutting down","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:47:14.426335","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:47:15.495826","level":"INFO","message":"Bot shutting down","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:47:40.529903","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:47:41.661564","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:48:30.053521","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:48:31.071552","level":"INFO","message":"Bot shutting down","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:53:24.753507","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:53:25.906557","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}

@@ -2,6 +2,7 @@ import os
 import functools
 import asyncio
 import random
+import re
 from datetime import datetime
 from pydub import AudioSegment
 import config
@@ -17,6 +18,148 @@ def get_elapsed_time(bot, user_id):
         elapsed = (datetime.now() - start_time).total_seconds()
         return f"(took {elapsed:.1f}s)"
     return ""
+
+
+# --- MESSAGE FORMATTING ---
+def format_text(message: str) -> str:
+    """Normalize a user-facing message to the project's lowercase-with-punctuation style.
+
+    - convert to lowercase
+    - collapse whitespace
+    - collapse repeated punctuation (e.g. "!!!" -> "!")
+    - strip emoji glyphs in common ranges
+    - ensure sentence ends with punctuation when appropriate
+    """
+    try:
+        if message is None:
+            return message
+        s = str(message).strip()
+        if not s:
+            return s
+        s = s.lower()
+        # collapse whitespace
+        s = re.sub(r"\s+", " ", s)
+        # collapse repeated punctuation
+        s = re.sub(r'([!?\.]){2,}', r'\1', s)
+        # remove common emoji ranges (basic cleanup)
+        s = re.sub(r'[\U0001F300-\U0001F6FF\U00002600-\U000027BF]+', '', s)
+        s = s.strip()
+        # ensure ends with punctuation if it ends with an alphanumeric char
+        if re.search(r'[a-z0-9]$', s):
+            s = s + '.'
+        return s
+    except Exception:
+        return str(message)
+
+
+def _normalize_embed(embed: discord.Embed) -> discord.Embed:
+    """Lowercase and normalize the text inside an Embed in-place and return it."""
+    if embed is None:
+        return embed
+    # title/description/footer
+    if getattr(embed, 'title', None):
+        try:
+            embed.title = format_text(embed.title).rstrip('.')
+        except Exception:
+            pass
+    if getattr(embed, 'description', None):
+        try:
+            embed.description = format_text(embed.description)
+        except Exception:
+            pass
+    # fields: collect and re-add to ensure updates apply cleanly
+    try:
+        fields = [(f.name, f.value, f.inline) for f in getattr(embed, 'fields', [])]
+        # clear existing fields
+        try:
+            embed.clear_fields()
+        except Exception:
+            # fallback: recreate by assigning _fields if present
+            if hasattr(embed, '_fields'):
+                embed._fields = []
+        for name, value, inline in fields:
+            n = format_text(name)
+            v = format_text(value)
+            embed.add_field(name=n, value=v, inline=inline)
+    except Exception:
+        pass
+    # footer
+    try:
+        if getattr(embed, 'footer', None) and getattr(embed.footer, 'text', None):
+            embed.set_footer(text=format_text(embed.footer.text))
+    except Exception:
+        pass
+    # author (preserve icon/url but normalize name)
+    try:
+        if getattr(embed, 'author', None) and getattr(embed.author, 'name', None):
+            try:
+                icon = getattr(embed.author, 'icon_url', None)
+            except Exception:
+                icon = None
+            try:
+                url = getattr(embed.author, 'url', None)
+            except Exception:
+                url = None
+            try:
+                # avoid forcing a trailing period on author names
+                author_name = format_text(embed.author.name).rstrip('.')
+                embed.set_author(name=author_name, icon_url=icon, url=url)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return embed
+
+
+async def send_status(ctx, content: str = None, *, embed: discord.Embed = None, file=None, status_msg=None, to_dm: bool = False):
+    """Send a user-facing status message using the project's voice.
+
+    - if `embed` is provided, normalize its text and send/edit the embed
+    - otherwise format the `content` string and send/edit a plain message
+    - returns the message object on success, or None on failure
+    """
+    text = format_text(content) if content is not None else None
+    try:
+        if embed is not None:
+            _normalize_embed(embed)
+            if status_msg:
+                await status_msg.edit(content=None, embed=embed)
+                return status_msg
+            if to_dm:
+                if file:
+                    return await ctx.author.send(embed=embed, file=file)
+                return await ctx.author.send(embed=embed)
+            else:
+                if file:
+                    return await ctx.send(embed=embed, file=file)
+                return await ctx.send(embed=embed)
+
+        # plain text path
+        if status_msg:
+            await status_msg.edit(content=text)
+            return status_msg
+        if to_dm:
+            if file:
+                return await ctx.author.send(text or '', file=file)
+            return await ctx.author.send(text or '')
+        else:
+            if file:
+                return await ctx.send(text or '', file=file)
+            return await ctx.send(text or '')
+    except Exception as e:
+        # best-effort fallback
+        try:
+            if status_msg:
+                await status_msg.edit(content=text or 'error.')
+                return status_msg
+        except:
+            pass
+        try:
+            if to_dm:
+                return await ctx.author.send(text or '')
+            return await ctx.send(text or '')
+        except:
+            return None
 
 def load_assets():
     try:
@@ -73,16 +216,24 @@ async def is_allowed_location(ctx):
                     await allowed_channel.send(f"{ctx.author.mention} tried to use !createchannels in the wrong channel")
             else:
                 invite_link = f"https://discord.com/channels/{config.ALLOWED_GUILD_ID}/{config.ALLOWED_CHANNEL_ID}"
-                await ctx.send(f"sorry, i can't do that here, maybe in {invite_link}?")
+                await send_status(ctx, f"sorry, i can't do that here, maybe in {invite_link}?")
         except:
             pass  # If we can't send the message, just silently fail the check
         return False
 
 async def send_error(ctx, e, status_msg=None):
-    error_msg = f"error: {e}"
-    if len(error_msg) > 1900: error_msg = error_msg[:1900] + "..."
-    if status_msg: await status_msg.edit(content=error_msg)
-    else: await ctx.send(error_msg)
+    raw = f"error: {e}"
+    # normalize and truncate
+    error_msg = format_text(raw)
+    if error_msg and len(error_msg) > 1900:
+        error_msg = error_msg[:1900] + "..."
+    if status_msg:
+        try:
+            await status_msg.edit(content=error_msg)
+            return
+        except Exception:
+            pass
+    await send_status(ctx, error_msg)
 
 # --- GENERATORS (HASH/HEX) ---
 def to_hex(text):
@@ -146,35 +297,45 @@ async def send_file_checked(ctx, file_path, caption=None, status_msg=None, to_dm
     """
     try:
         if not os.path.exists(file_path):
-            msg = "error: file not found."
+            msg = format_text("error: file not found.")
             if status_msg:
-                await status_msg.edit(content=msg)
+                try:
+                    await status_msg.edit(content=msg)
+                except Exception:
+                    pass
             else:
-                await ctx.send(msg)
+                await send_status(ctx, msg)
             return False
 
         file_size = os.path.getsize(file_path)
         if file_size > MAX_UPLOAD_BYTES:
             size_mb = file_size / (1024 * 1024)
-            msg = f"error: file size is {size_mb:.2f}MB, max is 17.5MB. use !compress"
+            raw = f"error: file size is {size_mb:.2f}MB, max is 17.5MB. use !compress"
+            msg = format_text(raw)
             if status_msg:
-                await status_msg.edit(content=msg)
+                try:
+                    await status_msg.edit(content=msg)
+                except Exception:
+                    pass
             else:
-                await ctx.send(msg)
+                await send_status(ctx, msg)
             return False
 
         # Attempt to send
         if to_dm:
-            await ctx.author.send(caption or "", file=discord.File(file_path))
+            await send_status(ctx, caption or "", file=discord.File(file_path), to_dm=True)
         else:
-            await ctx.send(caption or "", file=discord.File(file_path))
+            await send_status(ctx, caption or "", file=discord.File(file_path))
         return True
     except discord.Forbidden:
-        msg = "error: couldn't send DM. please enable DMs from server members."
+        msg = format_text("error: couldn't send DM. please enable DMs from server members.")
         if status_msg:
-            await status_msg.edit(content=msg)
+            try:
+                await status_msg.edit(content=msg)
+            except Exception:
+                pass
         else:
-            await ctx.send(msg)
+            await send_status(ctx, msg)
         return False
     except Exception as e:
         await send_error(ctx, e, status_msg=status_msg)

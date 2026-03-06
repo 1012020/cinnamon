@@ -82,3 +82,19 @@
 [2026-02-17T15:43:44.599013] User: 6w9w (1249721512265781358) | Command: None | Error: Command "png" is not found
 [2026-02-17T22:40:12.175344] User: 6w9w (1249721512265781358) | Command: None | Error: Command "-2db" is not found
 [2026-02-18T17:10:40.299748] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "MP3BAIThttps://cdn.discordapp.com/attachments/1458811026450546965/1473562243064139887/Adrianne_Lenker_-_ingydar_normalizingto-2db_compressed.mp3?ex=6996a948&is=699557c8&hm=a920f0247709fb31c079022667aaf703a89505f1a6aafc854375cf34720675af&" is not found
+[2026-02-21T11:34:27.081892] User: builderg1rl (1423665222870241422) | Command: fullbait | Error: The check functions for command fullbait failed.
+[2026-02-21T19:11:15.257008] User: mika_mika_kit (1392892548032368803) | Command: None | Error: Command "cmdes" is not found
+[2026-02-24T18:40:45.019624] User: builderg1rl (1423665222870241422) | Command: mp3bait | Error: The check functions for command mp3bait failed.
+[2026-02-28T09:49:19.352495] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "fullbait\" is not found
+[2026-02-28T15:06:12.925179] User: builderg1rl (1423665222870241422) | Command: None | Error: Command "ban" is not found
+[2026-02-28T15:07:32.336398] User: jewlymon (785259144189181972) | Command: None | Error: Command "sorry!" is not found
+[2026-02-28T17:36:19.159293] User: kingofcucks13 (1425197398816329778) | Command: download | Error: The check functions for command download failed.
+[2026-02-28T23:20:11.836910] User: mika_mika_kit (1392892548032368803) | Command: mp3bait | Error: The check functions for command mp3bait failed.
+[2026-03-01T10:59:06.529236] User: builderg1rl (1423665222870241422) | Command: fullbait | Error: The check functions for command fullbait failed.
+[2026-03-05T11:57:48.454395] User: jewlymon (785259144189181972) | Command: fullbait | Error: The check functions for command fullbait failed.
+[2026-03-05T16:46:54.304623] [ERROR   ] Command error: revoke - Member "jRsxCKEXdhoFvvUDQj608J5qrmOy3TzDJc5RDEFjJhs" not found. | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-05T17:16:37.342886] [ERROR   ] Command error: 32mono - The check functions for command 32mono failed. | user_id=1110764678558265404 | username=sac.mp3
+[2026-03-06T05:20:58.584450] [ERROR   ] Command error: unknown - Command "reedem" is not found | user_id=1375888788802375821 | username=egorkarecords.
+[2026-03-06T05:28:14.796969] [ERROR   ] Command error: 2db - The check functions for command 2db failed. | user_id=1392892548032368803 | username=n6y5
+[2026-03-06T21:36:47.930565] [ERROR   ] Command error: unknown - Command "achievments" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-06T21:40:03.463352] [ERROR   ] Command error: unknown - Command "community" is not found | user_id=1423665222870241422 | username=builderg1rl

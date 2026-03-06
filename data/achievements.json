@@ -1,0 +1,28 @@
+{
+  "1423665222870241422": {
+    "earned": [
+      "first_command",
+      "commands_50",
+      "commands_100",
+      "first_follower"
+    ],
+    "presets_created": 0,
+    "followers": 1,
+    "challenge_wins": 0,
+    "preset_forks_received": 0,
+    "current_streak": 1,
+    "last_active_date": "2026-03-06"
+  },
+  "794619423616532561": {
+    "earned": [
+      "first_command",
+      "early_adopter"
+    ],
+    "presets_created": 0,
+    "followers": 0,
+    "challenge_wins": 0,
+    "preset_forks_received": 0,
+    "current_streak": 1,
+    "last_active_date": "2026-03-06"
+  }
+}

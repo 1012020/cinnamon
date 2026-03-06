@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bot_name }} - Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117; 
+            color: #c9d1d9;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 30px; }
+        h2 { color: #8b949e; margin: 20px 0 10px; font-size: 18px; }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+        }
+        .stat-value { font-size: 32px; font-weight: bold; color: #58a6ff; }
+        .stat-label { color: #8b949e; margin-top: 5px; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse;
+            background: #161b22;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        th { 
+            background: #0d1117;
+            color: #8b949e;
+            font-weight: 600;
+        }
+        tr:hover { background: #1c2128; }
+        .error-rate { color: #f85149; }
+        .success-rate { color: #3fb950; }
+        .log-container {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-line { 
+            padding: 2px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .refresh-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .refresh-btn:hover { background: #2ea043; }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin: 20px 0 30px;
+        }
+        .control-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 14px;
+        }
+        .control-card h3 {
+            font-size: 14px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+        .control-card input, .control-card select, .control-card textarea {
+            width: 100%;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .control-card textarea { min-height: 74px; resize: vertical; }
+        .btn {
+            background: #1f6feb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #388bfd; }
+        .btn-danger { background: #da3633; }
+        .btn-danger:hover { background: #f85149; }
+        .status-box {
+            margin: 10px 0 20px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            min-height: 38px;
+        }
+        .output-box {
+            margin-top: 8px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px;
+            min-height: 60px;
+            max-height: 260px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 {{ bot_name }} - Admin Dashboard</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-commands">-</div>
+                <div class="stat-label">Total Commands</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-users">-</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-errors">-</div>
+                <div class="stat-label">Total Errors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-tasks">-</div>
+                <div class="stat-label">Active Tasks</div>
+            </div>
+        </div>
+
+        <h2>Top Commands</h2>
+        <table id="commands-table">
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Usage Count</th>
+                    <th>Errors</th>
+                    <th>Error Rate</th>
+                </tr>
+            </thead>
+            <tbody id="commands-body"></tbody>
+        </table>
+
+        <h2>Top Users</h2>
+        <table id="users-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Commands</th>
+                    <th>Last Active</th>
+                </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+        </table>
+
+        <h2>Recent Logs</h2>
+        <button class="refresh-btn" onclick="loadLogs()">Refresh Logs</button>
+        <div class="log-container" id="logs"></div>
+
+        <h2>Control Center</h2>
+        <div class="control-card" style="margin-bottom: 12px;">
+            <h3>Admin Token</h3>
+            <input id="admin-token" type="password" placeholder="Paste ADMIN_TOKEN here" />
+            <button class="btn" onclick="saveToken()">Save Token</button>
+        </div>
+        <div class="status-box" id="control-status">No actions run yet.</div>
+
+        <div class="controls-grid">
+            <div class="control-card">
+                <h3>Bot Maintenance</h3>
+                <div class="btn-row">
+                    <button class="btn" onclick="reloadCogs()">Reload Cogs</button>
+                    <button class="btn" onclick="syncCommands()">Sync Commands</button>
+                    <button class="btn" onclick="backupKeys()">Backup Keys</button>
+                    <button class="btn" onclick="resetStats()">Reset Stats</button>
+                    <button class="btn btn-danger" onclick="shutdownBot()">Shutdown Bot</button>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <h3>Presence</h3>
+                <select id="presence-status">
+                    <option value="online">Online</option>
+                    <option value="idle">Idle</option>
+                    <option value="dnd">Do Not Disturb</option>
+                    <option value="invisible">Invisible</option>
+                </select>
+                <input id="presence-text" type="text" maxlength="128" placeholder="Playing text (optional)" />
+                <button class="btn" onclick="setPresence()">Update Presence</button>
+            </div>
+
+            <div class="control-card">
+                <h3>Send Message</h3>
+                <input id="send-channel-id" type="text" placeholder="Channel ID" />
+                <textarea id="send-message" maxlength="2000" placeholder="Message text"></textarea>
+                <button class="btn" onclick="sendMessage()">Send</button>
+            </div>
+
+            <div class="control-card">
+                <h3>Task Control</h3>
+                <input id="cancel-user-id" type="text" placeholder="User ID for active task" />
+                <div class="btn-row">
+                    <button class="btn" onclick="cancelTask()">Cancel Task</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <h3>Key Manager</h3>
+                <input id="key-count" type="number" min="1" max="1000" value="1" placeholder="Number of keys" />
+                <div class="btn-row">
+                    <button class="btn" onclick="generateKeys()">Generate Keys</button>
+                    <button class="btn" onclick="loadKeys()">Refresh Keys</button>
+                    <button class="btn" onclick="postKeys()">Post Live Message</button>
+                </div>
+                <input id="delete-key" type="text" placeholder="Key string to delete" />
+                <button class="btn btn-danger" onclick="deleteKey()">Delete Key</button>
+                <div class="output-box" id="keys-output">No key data loaded.</div>
+            </div>
+
+            <div class="control-card">
+                <h3>Codebase Capabilities</h3>
+                <button class="btn" onclick="loadCapabilities()">Load Commands/Cogs</button>
+                <div class="output-box" id="caps-output">No capabilities loaded.</div>
+            </div>
+
+            <div class="control-card">
+                <h3>Shell Executor</h3>
+                <input id="shell-command" type="text" placeholder="PowerShell command" />
+                <button class="btn" onclick="runShell()">Run Shell</button>
+                <div class="output-box" id="shell-output">No shell output.</div>
+            </div>
+
+            <div class="control-card">
+                <h3>Python Executor</h3>
+                <textarea id="python-code" placeholder="Python code (has access to bot and dashboard)"></textarea>
+                <button class="btn" onclick="runPython()">Run Python</button>
+                <div class="output-box" id="python-output">No python output.</div>
+            </div>
+
+            <div class="control-card">
+                <h3>File Manager</h3>
+                <input id="file-path" type="text" placeholder="Path (e.g. data/stats.json)" />
+                <div class="btn-row">
+                    <button class="btn" onclick="readFilePath()">Read</button>
+                    <button class="btn" onclick="writeFilePath()">Write</button>
+                </div>
+                <textarea id="file-content" placeholder="File content for write"></textarea>
+                <div class="output-box" id="file-output">No file output.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setStatus(message, ok = true) {
+            const box = document.getElementById('control-status');
+            box.textContent = message;
+            box.style.borderColor = ok ? '#3fb950' : '#f85149';
+        }
+
+        function getToken() {
+            return (localStorage.getItem('dashboard_admin_token') || '').trim();
+        }
+
+        function saveToken() {
+            const value = document.getElementById('admin-token').value.trim();
+            localStorage.setItem('dashboard_admin_token', value);
+            setStatus(value ? 'Admin token saved in browser storage.' : 'Token cleared.', true);
+        }
+
+        async function apiControl(action, payload = {}) {
+            const token = getToken();
+            if (!token) {
+                setStatus('Set your admin token first.', false);
+                return null;
+            }
+
+            const res = await fetch('/api/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Admin-Token': token
+                },
+                body: JSON.stringify({ action, ...payload })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                setStatus(`Action failed: ${data.error || 'Unknown error'}`, false);
+                return null;
+            }
+
+            setStatus(data.message || 'Action completed.', true);
+            loadStats();
+            loadActiveTasks();
+            loadLogs();
+            return data;
+        }
+
+        async function loadStats() {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+            document.getElementById('total-commands').textContent = data.total_commands || 0;
+            document.getElementById('total-users').textContent = data.total_users || 0;
+            document.getElementById('total-errors').textContent = data.total_errors || 0;
+        }
+        async function loadCommands() {
+            const res = await fetch('/api/commands');
+            const data = await res.json();
+            const tbody = document.getElementById('commands-body');
+            tbody.innerHTML = '';
+            (data.commands || []).slice(0, 15).forEach(cmd => {
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>!${cmd.name}</td><td>${cmd.count.toLocaleString()}</td><td>${cmd.errors}</td><td class="${cmd.error_rate > 5 ? 'error-rate' : 'success-rate'}">${cmd.error_rate.toFixed(1)}%</td>`;
+            });
+        }
+        async function loadUsers() {
+            const res = await fetch('/api/users');
+            const data = await res.json();
+            const tbody = document.getElementById('users-body');
+            tbody.innerHTML = '';
+            (data.users || []).slice(0, 15).forEach(user => {
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>${user.username}</td><td>${user.commands.toLocaleString()}</td><td>${user.last_command ? new Date(user.last_command).toLocaleString() : 'N/A'}</td>`;
+            });
+        }
+        async function loadActiveTasks() {
+            const res = await fetch('/api/active-tasks');
+            const data = await res.json();
+            document.getElementById('active-tasks').textContent = (data.tasks || []).length;
+        }
+        async function loadLogs() {
+            const res = await fetch('/api/logs?lines=50');
+            const data = await res.json();
+            const container = document.getElementById('logs');
+            container.innerHTML = (data.logs || []).reverse().map(line => `<div class="log-line">${line}</div>`).join('');
+        }
+
+        async function reloadCogs() { await apiControl('reload_cogs'); }
+        async function syncCommands() { await apiControl('sync_commands'); }
+        async function backupKeys() { await apiControl('backup_keys'); }
+        async function shutdownBot() { await apiControl('shutdown_bot'); }
+        async function clearLogs() { await apiControl('clear_logs'); }
+        async function resetStats() { await apiControl('reset_stats'); loadCommands(); loadUsers(); }
+
+        async function setPresence() {
+            const status = document.getElementById('presence-status').value;
+            const text = document.getElementById('presence-text').value;
+            await apiControl('set_presence', { status, text });
+        }
+
+        async function sendMessage() {
+            const channel_id = document.getElementById('send-channel-id').value.trim();
+            const message = document.getElementById('send-message').value;
+            await apiControl('send_message', { channel_id, message });
+        }
+
+        async function cancelTask() {
+            const user_id = document.getElementById('cancel-user-id').value.trim();
+            await apiControl('cancel_task', { user_id });
+        }
+
+        async function generateKeys() {
+            const count = parseInt(document.getElementById('key-count').value || '1', 10);
+            const data = await apiControl('generate_keys', { count });
+            if (data && data.generated_keys) {
+                document.getElementById('keys-output').textContent = data.generated_keys.join('\n');
+            }
+        }
+
+        async function deleteKey() {
+            const key = document.getElementById('delete-key').value.trim();
+            await apiControl('delete_key', { key });
+            loadKeys();
+        }
+
+        async function postKeys() {
+            const data = await apiControl('post_keys', {});
+            if (data) {
+                document.getElementById('keys-output').textContent = `Keys message posted!\nMessage ID: ${data.message_id || 'Unknown'}`;
+            }
+        }
+
+        async function loadKeys() {
+            const token = getToken();
+            if (!token) {
+                setStatus('Set your admin token first.', false);
+                return;
+            }
+            const res = await fetch('/api/control/keys', {
+                headers: { 'X-Admin-Token': token }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                setStatus(`Failed to load keys: ${data.error || 'Unknown error'}`, false);
+                return;
+            }
+            const keys = data.keys || {};
+            const lines = Object.entries(keys).slice(0, 120).map(([k, v]) => `${k} | used=${v.used} | user=${v.user_id ?? '-'} | created=${v.created_at || '-'}`);
+            document.getElementById('keys-output').textContent = lines.length ? lines.join('\n') : 'No keys.';
+        }
+
+        async function loadCapabilities() {
+            const res = await fetch('/api/control/capabilities');
+            const data = await res.json();
+            if (!res.ok) {
+                setStatus(`Failed to load capabilities: ${data.error || 'Unknown error'}`, false);
+                return;
+            }
+            const cmdCount = (data.commands || []).length;
+            const cogCount = (data.cogs || []).length;
+            const cmdList = (data.commands || []).map(c => `!${c.name} ${c.signature || ''}`.trim()).join('\n');
+            document.getElementById('caps-output').textContent = `Commands: ${cmdCount}\nCogs: ${cogCount}\n\n${cmdList}`;
+        }
+
+        async function runShell() {
+            const command = document.getElementById('shell-command').value;
+            const data = await apiControl('run_shell', { command });
+            if (data) {
+                document.getElementById('shell-output').textContent = `[exit ${data.exit_code}]\n${data.output || ''}`;
+            }
+        }
+
+        async function runPython() {
+            const code = document.getElementById('python-code').value;
+            const data = await apiControl('run_python', { code });
+            if (data) {
+                document.getElementById('python-output').textContent = data.output || 'No output.';
+            }
+        }
+
+        async function readFilePath() {
+            const path = document.getElementById('file-path').value.trim();
+            const data = await apiControl('read_file', { path });
+            if (data) {
+                if (Array.isArray(data.entries)) {
+                    document.getElementById('file-output').textContent = data.entries.join('\n');
+                    document.getElementById('file-content').value = '';
+                } else {
+                    document.getElementById('file-output').textContent = `Read: ${path}`;
+                    document.getElementById('file-content').value = data.content || '';
+                }
+            }
+        }
+
+        async function writeFilePath() {
+            const path = document.getElementById('file-path').value.trim();
+            const content = document.getElementById('file-content').value;
+            const data = await apiControl('write_file', { path, content });
+            if (data) {
+                document.getElementById('file-output').textContent = `Wrote: ${path}`;
+            }
+        }
+
+        document.getElementById('admin-token').value = getToken();
+        loadStats();loadCommands();loadUsers();loadActiveTasks();loadLogs();
+        loadCapabilities();
+        setInterval(() => { loadStats(); loadActiveTasks(); }, 30000);
+    </script>
+</body>
+</html>

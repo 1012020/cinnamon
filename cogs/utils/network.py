@@ -6,7 +6,7 @@ import time
 import asyncio
 import yt_dlp
 import config
-from cogs.utils.helpers import send_error
+from cogs.utils.helpers import send_error, send_status
 
 async def _upload_litterbox(session, file_path, expiration):
     url = "https://litterbox.catbox.moe/resources/internals/api.php"
@@ -139,7 +139,7 @@ async def download_file(ctx, url_arg, status_msg=None):
     if not target_url or not any(d in target_url for d in config.ALLOWED_DOMAINS):
         msg = "i only accept links from cdn.discordapp.com"
         if status_msg: await status_msg.edit(content=msg)
-        else: await ctx.send(msg)
+        else: await send_status(ctx, msg)
         return None, None
 
     if status_msg: await status_msg.edit(content="downloading...")
@@ -153,17 +153,17 @@ async def download_file(ctx, url_arg, status_msg=None):
             if resp.status == 404:
                 msg = "error: file not found (404)"
                 if status_msg: await status_msg.edit(content=msg)
-                else: await ctx.send(msg)
+                else: await send_status(ctx, msg)
                 return None, None
             elif resp.status == 403:
                 msg = "error: access forbidden (403)"
                 if status_msg: await status_msg.edit(content=msg)
-                else: await ctx.send(msg)
+                else: await send_status(ctx, msg)
                 return None, None
             elif resp.status != 200:
                 msg = f"error: download failed (status {resp.status})"
                 if status_msg: await status_msg.edit(content=msg)
-                else: await ctx.send(msg)
+                else: await send_status(ctx, msg)
                 return None, None
             
             # Check content length if available
@@ -173,7 +173,7 @@ async def download_file(ctx, url_arg, status_msg=None):
                 if size_mb > 17.5:
                     msg = f"error: file size is {size_mb:.1f}mb, max is 17.5mb. use !compress"
                     if status_msg: await status_msg.edit(content=msg)
-                    else: await ctx.send(msg)
+                    else: await send_status(ctx, msg)
                     return None, None
             
             with open(input_path, 'wb') as f:
@@ -186,9 +186,49 @@ async def download_file(ctx, url_arg, status_msg=None):
 
 def download_sc_yt_logic(target_url):
     ydl_opts_check = {'quiet': True, 'no_warnings': True, 'noplaylist': True, 'extract_flat': 'in_playlist'}
+
+    def _pick_entry(info):
+        if not info:
+            return None
+        entries = info.get('entries') if isinstance(info, dict) else None
+        if entries:
+            for entry in entries:
+                if entry:
+                    return entry
+            return None
+        return info
+
+    def _build_dl_opts(output_template, use_youtube_fallback=False):
+        opts = {
+            'format': 'bestaudio[ext=m4a]/bestaudio/best',
+            'outtmpl': output_template,
+            'quiet': True,
+            'no_warnings': True,
+            'noplaylist': True,
+            'writethumbnail': False,
+            'writeinfojson': False,
+            'postprocessors': [
+                {
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192'
+                }
+            ]
+        }
+        if use_youtube_fallback:
+            opts['extractor_args'] = {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'web'],
+                    'player_skip': ['webpage', 'configs']
+                }
+            }
+        return opts
+    candidate_targets = [target_url]
     try:
         with yt_dlp.YoutubeDL(ydl_opts_check) as ydl:
-            info = ydl.extract_info(target_url, download=False)
+            info = _pick_entry(ydl.extract_info(target_url, download=False))
+            if not info:
+                return None, "failed to fetch info", None
             duration = info.get('duration', 0)
             title = info.get('title', 'audio')
             if duration > 540:
@@ -198,14 +238,21 @@ def download_sc_yt_logic(target_url):
 
     unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     output_template = f"dl_{unique_id}.%(ext)s"
-    ydl_opts_dl = {'format': 'bestaudio/best', 'outtmpl': output_template, 'quiet': True, 'noplaylist': True, 'writethumbnail': False, 'writeinfojson': False, 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}]}
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl:
-            ydl.download([target_url])
-        final_file = f"dl_{unique_id}.mp3"
-        return (final_file, None, title) if os.path.exists(final_file) else (None, "download failed internally", None)
-    except Exception as e:
-        return None, f"download error: {e}", None
+    final_file = f"dl_{unique_id}.mp3"
+
+    last_error = None
+    for use_fallback in [False, True]:
+        ydl_opts_dl = _build_dl_opts(output_template, use_youtube_fallback=use_fallback)
+        for candidate in candidate_targets:
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl:
+                    ydl.download([candidate])
+                if os.path.exists(final_file):
+                    return final_file, None, title
+            except Exception as e:
+                last_error = e
+
+    return None, f"download error: {last_error}", None
 
 async def check_providers(session):
     results = {}

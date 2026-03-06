@@ -5,7 +5,8 @@ import random
 import shutil
 import uuid
 import config
-from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, clean_filename, get_elapsed_time, send_file_checked, MAX_UPLOAD_BYTES
+from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, clean_filename, get_elapsed_time, send_file_checked, MAX_UPLOAD_BYTES, send_status
+from cogs.utils.settings import get_fullbait_mode, set_fullbait_mode
 from cogs.utils.network import download_file, download_url_simple, upload_file, download_sc_yt_logic
 from cogs.utils import audio_processing as ap
 
@@ -17,12 +18,12 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def download_sc_yt(self, ctx, url: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "download", "files": [], "start_time": datetime.now()}
         
         try:
             if not url:
-                await msg.edit(content="error: please provide a link or pekora.zip ID.")
+                await send_status(ctx, "error: please provide a link or pekora.zip ID.", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
@@ -30,12 +31,12 @@ class AudioCommands(commands.Cog):
             # Check if it's a pekora.zip ID (numeric)
             if url.isdigit():
                 pekora_url = f"https://www.pekora.zip/asset/?id={url}"
-                await msg.edit(content=f"downloading from pekora.zip (ID: {url})...")
+                await send_status(ctx, f"downloading from pekora.zip (id: {url})...", status_msg=msg)
                 
                 # Download directly from pekora.zip
                 file_path = await download_url_simple(self.bot.session, pekora_url)
                 if not file_path:
-                    await msg.edit(content="error: failed to download from pekora.zip. invalid ID?")
+                    await send_status(ctx, "error: failed to download from pekora.zip. invalid id?", status_msg=msg)
                     return
                 
                 if ctx.author.id in self.bot.active_tasks:
@@ -49,9 +50,12 @@ class AudioCommands(commands.Cog):
                     file_size = os.path.getsize(upload_path) / (1024 * 1024)
                     elapsed = get_elapsed_time(self.bot, ctx.author.id)
                     
-                    await msg.edit(content="uploading...")
+                    await send_status(ctx, "uploading...", status_msg=msg)
                     await send_file_checked(ctx, upload_path, caption=f"pekora.zip ({file_size:.2f}mb) {elapsed}", status_msg=msg)
-                    await msg.delete()
+                    try:
+                        await msg.delete()
+                    except:
+                        pass
                     if os.path.exists(upload_path): os.remove(upload_path)
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
@@ -62,19 +66,19 @@ class AudioCommands(commands.Cog):
             # Original YouTube/SoundCloud logic
             valid_domains = ['youtube.com', 'youtu.be', 'soundcloud.com']
             if not any(domain in url for domain in valid_domains):
-                await msg.edit(content="error: only youtube and soundcloud links are allowed.")
+                await send_status(ctx, "error: only youtube and soundcloud links are allowed.", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
 
-            await msg.edit(content="checking duration & downloading audio...")
+            await send_status(ctx, "checking duration & downloading audio...", status_msg=msg)
             file_path, error_msg, title = await run_blocking(download_sc_yt_logic, url)
 
             if ctx.author.id in self.bot.active_tasks and file_path:
                 self.bot.active_tasks[ctx.author.id]["files"].append(file_path)
 
             if error_msg:
-                await msg.edit(content=f"error: {error_msg}")
+                await send_status(ctx, f"error: {error_msg}", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
@@ -89,7 +93,7 @@ class AudioCommands(commands.Cog):
                     file_size = os.path.getsize(upload_path) / (1024 * 1024)
                     elapsed = get_elapsed_time(self.bot, ctx.author.id)
                     
-                    await msg.edit(content="uploading...")
+                    await send_status(ctx, "uploading...", status_msg=msg)
                     await send_file_checked(ctx, upload_path, caption=f"downloaded ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                     await msg.delete()
                     if os.path.exists(upload_path): os.remove(upload_path)
@@ -105,7 +109,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_intro(self, ctx, arg1: str = None, arg2: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "intro", "files": [], "start_time": datetime.now()}
         main_url = None
         intro_url = None
@@ -120,28 +124,28 @@ class AudioCommands(commands.Cog):
             try: original_name = arg1.split("?")[0].split("/")[-1]
             except: pass
         else:
-            await msg.edit(content="error: missing inputs.")
+            await send_status(ctx, "error: missing inputs.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         if not main_url or not intro_url or not main_url.startswith("http") or not intro_url.startswith("http"):
-            await msg.edit(content="error: inputs must be valid links.")
+            await send_status(ctx, "error: inputs must be valid links.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
-        await msg.edit(content="downloading main audio...")
+        await send_status(ctx, "downloading main audio...", status_msg=msg)
         main_path = await download_url_simple(self.bot.session, main_url)
         if not main_path:
-            await msg.edit(content="error: failed to download main audio.")
+            await send_status(ctx, "error: failed to download main audio.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         if ctx.author.id in self.bot.active_tasks:
             self.bot.active_tasks[ctx.author.id]["files"].append(main_path)
-        await msg.edit(content="downloading intro audio...")
+        await send_status(ctx, "downloading intro audio...", status_msg=msg)
         intro_path = await download_url_simple(self.bot.session, intro_url)
         if not intro_path:
-            await msg.edit(content="error: failed to download intro audio.")
+            await send_status(ctx, "error: failed to download intro audio.", status_msg=msg)
             if os.path.exists(main_path): os.remove(main_path)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
@@ -149,7 +153,7 @@ class AudioCommands(commands.Cog):
         if ctx.author.id in self.bot.active_tasks:
             self.bot.active_tasks[ctx.author.id]["files"].append(intro_path)
         try:
-            await msg.edit(content="stitching audio...")
+            await send_status(ctx, "stitching audio...", status_msg=msg)
             ext = main_path.split('.')[-1].lower()
             clean_name = clean_filename(original_name)
             output_path = f"{clean_name}_intro.{ext}"
@@ -171,7 +175,7 @@ class AudioCommands(commands.Cog):
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            await msg.edit(content="uploading...")
+            await send_status(ctx, "uploading...", status_msg=msg)
             await send_file_checked(ctx, output_path, caption=f"done ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
@@ -187,7 +191,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_convert(self, ctx, arg1: str = None, arg2: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "convert", "files": [], "start_time": datetime.now()}
         target_url = None
         target_ext = "ogg"
@@ -203,14 +207,14 @@ class AudioCommands(commands.Cog):
                 target_ext = a
                 break
         if not target_url:
-            await msg.edit(content="error: please provide a valid link or attachment.")
+            await send_status(ctx, "error: please provide a valid link or attachment.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         target_ext = target_ext.lower().replace(".", "").strip()
         allowed_formats = ["mp3", "ogg", "wav", "flac", "m4a", "aac", "wma"]
         if target_ext not in allowed_formats:
-            await msg.edit(content=f"error: unsupported format '{target_ext}'. supported: {', '.join(allowed_formats)}")
+            await send_status(ctx, f"error: unsupported format '{target_ext}'. supported: {', '.join(allowed_formats)}", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -222,7 +226,7 @@ class AudioCommands(commands.Cog):
         if ctx.author.id in self.bot.active_tasks:
             self.bot.active_tasks[ctx.author.id]["files"].append(input_path)
         try:
-            await msg.edit(content=f"converting to {target_ext}...")
+            await send_status(ctx, f"converting to {target_ext}...", status_msg=msg)
             clean_name = clean_filename(original_filename)
             output_path = f"{clean_name}.{target_ext}"
             format_map = { "m4a": "ipod", "aac": "adts" }
@@ -232,7 +236,7 @@ class AudioCommands(commands.Cog):
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            await msg.edit(content="uploading...")
+            await send_status(ctx, "uploading...", status_msg=msg)
             await send_file_checked(ctx, output_path, caption=f"converted to {target_ext} ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
@@ -246,7 +250,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_32mono(self, ctx, url: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "32mono", "files": [], "start_time": datetime.now()}
         
         input_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -257,7 +261,7 @@ class AudioCommands(commands.Cog):
         if ctx.author.id in self.bot.active_tasks:
             self.bot.active_tasks[ctx.author.id]["files"].append(input_path)
         if not input_path.lower().endswith(".ogg"):
-            await msg.edit(content="error: input has to be an .ogg file.")
+            await send_status(ctx, "error: input has to be an .ogg file.", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -269,20 +273,20 @@ class AudioCommands(commands.Cog):
             from pydub import AudioSegment
             audio = AudioSegment.from_file(input_path)
             if audio.channels != 2:
-                await msg.edit(content=f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.")
+                await send_status(ctx, f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.", status_msg=msg)
                 os.remove(input_path)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
         except Exception as e:
-            await msg.edit(content=f"error: could not validate audio channels: {str(e)}")
+            await send_status(ctx, f"error: could not validate audio channels: {str(e)}", status_msg=msg)
             os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         
         if not os.path.exists(config.BAIT_DIRECTORY):
-            await msg.edit(content="error: bait directory not found.")
+            await send_status(ctx, "error: bait directory not found.", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -291,7 +295,7 @@ class AudioCommands(commands.Cog):
         all_baits = [f for f in os.listdir(config.BAIT_DIRECTORY) if os.path.isfile(os.path.join(config.BAIT_DIRECTORY, f))]
         valid_baits = [f for f in all_baits if f.lower().endswith(('.mp3', '.ogg', '.wav', '.flac'))]
         if not valid_baits:
-            await msg.edit(content="error: no audio files in bait directory.")
+            await send_status(ctx, "error: no audio files in bait directory.", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -303,7 +307,7 @@ class AudioCommands(commands.Cog):
         rand_suffix = ''.join(random.choices('0123456789abcdef', k=16))
         output_file = f"{bait_base}_{rand_suffix}.mp3"
         try:
-            await msg.edit(content=f"processing using bait: {selected_bait_name}...")
+            await send_status(ctx, f"processing using bait: {selected_bait_name}...", status_msg=msg)
             should_watermark = not any(r.id == config.ISRAELITE_ROLE_ID for r in ctx.author.roles) if ctx.author.roles else True if ctx.author.roles else True
             await run_blocking(ap.process_32mono, input_path, output_file, selected_bait_path, add_watermark=should_watermark)
             
@@ -312,7 +316,7 @@ class AudioCommands(commands.Cog):
             max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
+                await send_status(ctx, f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress", status_msg=msg)
                 if os.path.exists(input_path): os.remove(input_path)
                 if os.path.exists(output_file): os.remove(output_file)
                 if ctx.author.id in self.bot.active_tasks:
@@ -322,9 +326,9 @@ class AudioCommands(commands.Cog):
             download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
             if download_link:
                 elapsed = get_elapsed_time(self.bot, ctx.author.id)
-                await msg.edit(content=f"done: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{output_file}** or not, it's your call")
+                await send_status(ctx, f"done: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{output_file}** or not, it's your call", status_msg=msg)
             else:
-                await msg.edit(content="error: upload failed.")
+                await send_status(ctx, "error: upload failed.", status_msg=msg)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:
@@ -337,14 +341,15 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_fullbait(self, ctx, url: str = None):
         from datetime import datetime
-        # Check if user has the required role (by ID)
+        # Determine access mode
+        mode = get_fullbait_mode()
         author_roles = getattr(ctx.author, "roles", []) or []
-        has_required_role = any(getattr(r, "id", None) == 1464787461719720133 for r in author_roles)
-        if not has_required_role:
-            await ctx.send("error: you don't have the required role to use this command.")
+        has_required_role = any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in author_roles)
+        if mode == 'role_only' and not has_required_role:
+            await send_status(ctx, "error: you don't have the required role to use this command.")
             return
         
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "fullbait", "files": [], "start_time": datetime.now()}
         
         input_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -360,14 +365,14 @@ class AudioCommands(commands.Cog):
             from pydub import AudioSegment
             audio = AudioSegment.from_file(input_path)
             if audio.channels != 2:
-                await msg.edit(content=f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.")
+                await send_status(ctx, f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.", status_msg=msg)
                 if os.path.exists(input_path):
                     os.remove(input_path)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
         except Exception as e:
-            await msg.edit(content=f"error: could not validate audio channels: {str(e)}")
+            await send_status(ctx, f"error: could not validate audio channels: {str(e)}", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -378,7 +383,7 @@ class AudioCommands(commands.Cog):
         if not os.path.exists(fullbaits_dir): fullbaits_dir = "assets/fullbaits"
         
         if not os.path.exists(fullbaits_dir):
-            await msg.edit(content="error: fullbaits directory not found.")
+            await send_status(ctx, "error: fullbaits directory not found.", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -387,7 +392,7 @@ class AudioCommands(commands.Cog):
 
         all_baits = [f for f in os.listdir(fullbaits_dir) if f.endswith('.ogg')]
         if not all_baits:
-            await msg.edit(content="error: no .ogg files in fullbaits directory.")
+            await send_status(ctx, "error: no .ogg files in fullbaits directory.", status_msg=msg)
             if os.path.exists(input_path):
                 os.remove(input_path)
             if ctx.author.id in self.bot.active_tasks:
@@ -400,8 +405,14 @@ class AudioCommands(commands.Cog):
         output_file = f"{clean_name}_fullbait.ogg"
 
         try:
-            await msg.edit(content="processing...")
-            should_watermark = not any(r.id == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
+            await send_status(ctx, "processing...", status_msg=msg)
+            # Watermark logic:
+            # - when mode == 'everyone_watermark' -> everyone allowed but watermark applied
+            # - when mode == 'role_only' -> only role allowed and watermark applied for everyone except role
+            if mode == 'everyone_watermark':
+                should_watermark = True
+            else:
+                should_watermark = not any(r.id == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
             await run_blocking(ap.process_fullbait, input_path, output_file, bait_path, add_watermark=should_watermark)
             
             # Check file size (17.5MB max for fullbait)
@@ -409,7 +420,7 @@ class AudioCommands(commands.Cog):
             max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
+                await send_status(ctx, f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress", status_msg=msg)
                 if os.path.exists(input_path): os.remove(input_path)
                 if os.path.exists(output_file): os.remove(output_file)
                 if ctx.author.id in self.bot.active_tasks:
@@ -419,13 +430,13 @@ class AudioCommands(commands.Cog):
             download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
             if download_link:
                 elapsed = get_elapsed_time(self.bot, ctx.author.id)
-                await msg.edit(content="done! check your DMs.")
-                try:
-                    await ctx.author.send(f"done: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{selected_bait}** or not, it's your call")
-                except discord.Forbidden:
-                    await msg.edit(content="error: couldn't send DM. please enable DMs from server members.")
+                dm = await send_status(ctx, f"done: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{selected_bait}** or not, it's your call", to_dm=True)
+                if dm:
+                    await send_status(ctx, "done! check your DMs.", status_msg=msg)
+                else:
+                    await send_status(ctx, "error: couldn't send DM. please enable DMs from server members.", status_msg=msg)
             else:
-                await msg.edit(content="error: upload failed.")
+                await send_status(ctx, "error: upload failed.", status_msg=msg)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:
@@ -434,9 +445,29 @@ class AudioCommands(commands.Cog):
             if 'input_path' in locals() and os.path.exists(input_path): os.remove(input_path)
             if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
 
+    @commands.command(name='fullbaitallowed')
+    @commands.check(is_allowed_location)
+    async def enable_fullbait_for_all(self, ctx):
+        # Only allow a specific user to toggle this
+        if ctx.author.id != 1423665222870241422:
+            await send_status(ctx, "error: you are not allowed to change this setting.")
+            return
+        set_fullbait_mode('everyone_watermark')
+        await send_status(ctx, "fullbait enabled for everyone (watermark applied).")
+
+    @commands.command(name='fullbaitdisable')
+    @commands.check(is_allowed_location)
+    async def disable_fullbait_for_all(self, ctx):
+        # Only allow a specific user to toggle this
+        if ctx.author.id != 1423665222870241422:
+            await send_status(ctx, "error: you are not allowed to change this setting.")
+            return
+        set_fullbait_mode('role_only')
+        await send_status(ctx, "fullbait disabled for everyone except the designated role.")
+
     async def _process_simple_effect(self, ctx, url, effect_func, effect_name):
         from datetime import datetime
-        msg = await ctx.send("starting...")
+        msg = await send_status(ctx, "starting...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": effect_name, "files": [], "start_time": datetime.now()}
         
         input_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -447,7 +478,7 @@ class AudioCommands(commands.Cog):
         if ctx.author.id in self.bot.active_tasks:
             self.bot.active_tasks[ctx.author.id]["files"].append(input_path)
         try:
-            await msg.edit(content=f"{effect_name}...")
+            await send_status(ctx, f"{effect_name}...", status_msg=msg)
             ext = input_path.split('.')[-1].lower()
             clean_name = clean_filename(original_filename)
             output_path = f"{clean_name}_{effect_name.replace(' ', '')}.{ext}"
@@ -458,7 +489,7 @@ class AudioCommands(commands.Cog):
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            await msg.edit(content="uploading...")
+            await send_status(ctx, "uploading...", status_msg=msg)
             await send_file_checked(ctx, output_path, caption=f"done ({file_size:.2f}mb) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
@@ -492,23 +523,23 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_create_channels(self, ctx, num_channels: int = None, url: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "createchannels", "files": [], "start_time": datetime.now()}
         
         if not num_channels:
-            await msg.edit(content="error: please specify number of channels (1-32).")
+            await send_status(ctx, "error: please specify number of channels (1-32).", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         
         if num_channels > 32:
-            await msg.edit(content="error: we've tried going over 32, it doesn't work")
+            await send_status(ctx, "error: we've tried going over 32, it doesn't work", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
         
         if num_channels < 1:
-            await msg.edit(content="error: number of channels must be at least 1.")
+            await send_status(ctx, "error: number of channels must be at least 1.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -522,7 +553,7 @@ class AudioCommands(commands.Cog):
             self.bot.active_tasks[ctx.author.id]["files"].append(input_path)
         
         try:
-            await msg.edit(content=f"creating {num_channels} channel audio...")
+            await send_status(ctx, f"creating {num_channels} channel audio...", status_msg=msg)
             clean_name = clean_filename(original_filename)
             output_path = f"{clean_name}_{num_channels}ch.ogg"
             
@@ -536,9 +567,9 @@ class AudioCommands(commands.Cog):
             
             # Check file size - only upload if <= MAX_UPLOAD_BYTES
             if file_size * 1024 * 1024 > MAX_UPLOAD_BYTES:
-                await msg.edit(content=f"error: file size ({file_size:.2f}mb) is too large to upload on site. max is 17.5mb, use !compress")
+                await send_status(ctx, f"error: file size ({file_size:.2f}mb) is too large to upload on site. max is 17.5mb, use !compress", status_msg=msg)
             else:
-                await msg.edit(content="uploading...")
+                await send_status(ctx, "uploading...", status_msg=msg)
                 await send_file_checked(ctx, output_path, caption=f"created {num_channels} channel audio ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                 await msg.delete()
             
@@ -557,7 +588,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_compress(self, ctx, url: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "compress", "files": [], "start_time": datetime.now()}
         
         input_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -569,7 +600,7 @@ class AudioCommands(commands.Cog):
             self.bot.active_tasks[ctx.author.id]["files"].append(input_path)
         
         try:
-            await msg.edit(content="compressing with high quality settings...")
+            await send_status(ctx, "compressing with high quality settings...", status_msg=msg)
             ext = input_path.split('.')[-1].lower()
             clean_name = clean_filename(original_filename)
             output_path = f"{clean_name}_compressed.{ext}"
@@ -582,7 +613,7 @@ class AudioCommands(commands.Cog):
             reduction = ((original_size - compressed_size) / original_size) * 100
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             
-            await msg.edit(content="uploading...")
+            await send_status(ctx, "uploading...", status_msg=msg)
             await send_file_checked(ctx, output_path, caption=f"compressed: {original_size:.2f}mb → {compressed_size:.2f}mb ({reduction:.1f}% reduction) {elapsed}", status_msg=msg)
             await msg.delete()
             if os.path.exists(output_path): os.remove(output_path)
@@ -597,7 +628,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_mp3bait(self, ctx, url: str = None):
         from datetime import datetime
-        msg = await ctx.send("this method is NOT GOOD and rarely works. 2017-2018 only.\ninitializing...")
+        msg = await send_status(ctx, "this method is NOT GOOD and rarely works. 2017-2018 only.\ninitializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "mp3bait", "files": [], "start_time": datetime.now()}
         
         # Get hidden audio from attachment or URL
@@ -608,7 +639,7 @@ class AudioCommands(commands.Cog):
             hidden_url = url
         
         if not hidden_url:
-            await msg.edit(content="error: please provide hidden audio (attachment or URL).")
+            await send_status(ctx, "error: please provide hidden audio (attachment or URL).", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -616,7 +647,7 @@ class AudioCommands(commands.Cog):
         # Check if cinnamon.mp3 exists
         cinnamon_path = "assets/cinnamon.mp3"
         if not os.path.exists(cinnamon_path):
-            await msg.edit(content="error: cinnamon.mp3 not found in assets folder.")
+            await send_status(ctx, "error: cinnamon.mp3 not found in assets folder.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -624,7 +655,7 @@ class AudioCommands(commands.Cog):
         # Select random bait from mp3 baits directory
         mp3baits_dir = "assets/mp3 baits"
         if not os.path.exists(mp3baits_dir):
-            await msg.edit(content="error: mp3 baits directory not found.")
+            await send_status(ctx, "error: mp3 baits directory not found.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -632,7 +663,7 @@ class AudioCommands(commands.Cog):
         all_baits = [f for f in os.listdir(mp3baits_dir) if os.path.isfile(os.path.join(mp3baits_dir, f))]
         valid_baits = [f for f in all_baits if f.lower().endswith(('.mp3', '.ogg', '.wav', '.flac'))]
         if not valid_baits:
-            await msg.edit(content="error: no audio files in mp3 baits directory.")
+            await send_status(ctx, "error: no audio files in mp3 baits directory.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -640,7 +671,7 @@ class AudioCommands(commands.Cog):
         selected_bait_name = random.choice(valid_baits)
         decoy_path = os.path.join(mp3baits_dir, selected_bait_name)
         
-        await msg.edit(content=f"downloading hidden audio... (using bait: {selected_bait_name})")
+        await send_status(ctx, f"downloading hidden audio... (using bait: {selected_bait_name})", status_msg=msg)
         hidden_path, _ = await download_file(ctx, hidden_url, status_msg=msg)
         if not hidden_path:
             if ctx.author.id in self.bot.active_tasks:
@@ -654,13 +685,13 @@ class AudioCommands(commands.Cog):
             from pydub import AudioSegment
             audio = AudioSegment.from_file(hidden_path)
             if audio.channels != 2:
-                await msg.edit(content=f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.")
+                await send_status(ctx, f"error: input has {audio.channels} channel(s). only 2 channels (stereo) are supported.", status_msg=msg)
                 os.remove(hidden_path)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
         except Exception as e:
-            await msg.edit(content=f"error: could not validate audio channels: {str(e)}")
+            await send_status(ctx, f"error: could not validate audio channels: {str(e)}", status_msg=msg)
             os.remove(hidden_path)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
@@ -673,7 +704,7 @@ class AudioCommands(commands.Cog):
             # Stitch cinnamon.mp3 + hidden audio together
             await run_blocking(ap.process_intro, hidden_path, cinnamon_path, stitched_temp, "mp3")
             
-            await msg.edit(content="processing glitched MP3 (compressing hidden to ~500 KB)...")
+            await send_status(ctx, "processing glitched MP3 (compressing hidden to ~500 KB)...", status_msg=msg)
             await run_blocking(ap.process_mp3bait, decoy_path, stitched_temp, output_file)
             
             # Check file size (17.5MB max)
@@ -681,7 +712,7 @@ class AudioCommands(commands.Cog):
             max_size = int(17.5 * 1024 * 1024)  # 17.5MB in bytes
             if file_size > max_size:
                 size_mb = file_size / (1024 * 1024)
-                await msg.edit(content=f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
+                await send_status(ctx, f"error: song that was made was {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress", status_msg=msg)
                 if 'hidden_path' in locals() and os.path.exists(hidden_path): os.remove(hidden_path)
                 if 'stitched_temp' in locals() and os.path.exists(stitched_temp): os.remove(stitched_temp)
                 if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
@@ -692,9 +723,9 @@ class AudioCommands(commands.Cog):
             download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
             if download_link:
                 elapsed = get_elapsed_time(self.bot, ctx.author.id)
-                await msg.edit(content=f"this method is NOT GOOD and rarely works. 2017-2018 only.\n\ndone: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{selected_bait_name}** or not, it's your call")
+                await send_status(ctx, f"this method is NOT GOOD and rarely works. 2017-2018 only.\n\ndone: {download_link} (expires in 1h) {elapsed}\nwhen uploading it call it: **{selected_bait_name}** or not, it's your call", status_msg=msg)
             else:
-                await msg.edit(content="error: upload failed.")
+                await send_status(ctx, "error: upload failed.", status_msg=msg)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:
@@ -708,7 +739,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_img_bait(self, ctx, arg1: str = None, arg2: str = None):
         from datetime import datetime
-        msg = await ctx.send("initializing...")
+        msg = await send_status(ctx, "initializing...")
         self.bot.active_tasks[ctx.author.id] = {"message": msg, "command": "img", "files": [], "start_time": datetime.now()}
         
         # Get audio and optional custom image
@@ -732,7 +763,7 @@ class AudioCommands(commands.Cog):
             custom_image_url = arg2
         
         if not audio_url:
-            await msg.edit(content="error: please provide audio file (attachment or URL).")
+            await send_status(ctx, "error: please provide audio file (attachment or URL).", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -740,7 +771,7 @@ class AudioCommands(commands.Cog):
         # Check if cinnamon.mp3 exists
         cinnamon_path = "assets/cinnamon.mp3"
         if not os.path.exists(cinnamon_path):
-            await msg.edit(content="error: cinnamon.mp3 not found in assets folder.")
+            await send_status(ctx, "error: cinnamon.mp3 not found in assets folder.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
@@ -748,13 +779,13 @@ class AudioCommands(commands.Cog):
         # Handle custom image or select random
         custom_image_path = None
         selected_image_name = None
-        
+
         if custom_image_url:
             # Download custom image
-            await msg.edit(content="downloading custom image...")
+            await send_status(ctx, "downloading custom image...", status_msg=msg)
             custom_image_path, _ = await download_file(ctx, custom_image_url, status_msg=msg)
             if not custom_image_path:
-                await msg.edit(content="error: failed to download custom image.")
+                await send_status(ctx, "error: failed to download custom image.", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
@@ -766,7 +797,7 @@ class AudioCommands(commands.Cog):
             # Select random image from img baits directory
             img_baits_dir = "assets/img baits"
             if not os.path.exists(img_baits_dir):
-                await msg.edit(content="error: img baits directory not found.")
+                await send_status(ctx, "error: img baits directory not found.", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
@@ -774,7 +805,7 @@ class AudioCommands(commands.Cog):
             all_images = [f for f in os.listdir(img_baits_dir) if os.path.isfile(os.path.join(img_baits_dir, f))]
             valid_images = [f for f in all_images if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
             if not valid_images:
-                await msg.edit(content="error: no image files found in img baits directory.")
+                await send_status(ctx, "error: no image files found in img baits directory.", status_msg=msg)
                 if ctx.author.id in self.bot.active_tasks:
                     del self.bot.active_tasks[ctx.author.id]
                 return
@@ -782,7 +813,7 @@ class AudioCommands(commands.Cog):
             selected_image_name = random.choice(valid_images)
             selected_image_path = os.path.join(img_baits_dir, selected_image_name)
         
-        await msg.edit(content=f"downloading audio... (using: {selected_image_name})")
+        await send_status(ctx, f"downloading audio... (using: {selected_image_name})", status_msg=msg)
         hidden_path, _ = await download_file(ctx, audio_url, status_msg=msg)
         if not hidden_path:
             if custom_image_path and os.path.exists(custom_image_path): os.remove(custom_image_path)
@@ -803,11 +834,11 @@ class AudioCommands(commands.Cog):
             hidden_ch = 2
 
         try:
-            await msg.edit(content="embedding audio into image...")
+            await send_status(ctx, "embedding audio into image...", status_msg=msg)
 
             # Require MP3 input for the image embed command
             if not hidden_path.lower().endswith('.mp3'):
-                await msg.edit(content="error: audio must be an .mp3 file.")
+                await send_status(ctx, "error: audio must be an .mp3 file.", status_msg=msg)
                 return
 
             # Embed raw MP3 bytes into PNG metadata using PIL
@@ -817,7 +848,7 @@ class AudioCommands(commands.Cog):
             try:
                 target_image = Image.open(selected_image_path)
             except Exception as e:
-                await msg.edit(content=f"error: failed to open image: {e}")
+                await send_status(ctx, f"error: failed to open image: {e}", status_msg=msg)
                 return
 
             metadata = PngInfo()
@@ -825,7 +856,7 @@ class AudioCommands(commands.Cog):
                 with open(hidden_path, "rb") as f:
                     audio_bytes = f.read()
             except Exception as e:
-                await msg.edit(content=f"error: failed to read audio file: {e}")
+                await send_status(ctx, f"error: failed to read audio file: {e}", status_msg=msg)
                 return
 
             metadata.add_text("", audio_bytes)
@@ -836,14 +867,14 @@ class AudioCommands(commands.Cog):
             size_mb = file_size / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
             if file_size > int(17.5 * 1024 * 1024):
-                await msg.edit(content=f"error: file size is {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress")
+                await send_status(ctx, f"error: file size is {size_mb:.2f}MB, the maximum should be 17.5MB. use !compress", status_msg=msg)
             else:
-                await msg.edit(content="uploading...")
+                await send_status(ctx, "uploading...", status_msg=msg)
                 download_link = await upload_file(self.bot.session, output_file, status_msg=msg)
                 if download_link:
-                    await msg.edit(content=f"done! final size: {size_mb:.2f}mb {elapsed}\n{download_link}")
+                    await send_status(ctx, f"done! final size: {size_mb:.2f}mb {elapsed}\n{download_link}", status_msg=msg)
                 else:
-                    await msg.edit(content="error: upload failed.")
+                    await send_status(ctx, "error: upload failed.", status_msg=msg)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
         finally:

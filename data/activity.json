@@ -1,0 +1,44 @@
+[
+  {
+    "event": "achievement_unlocked",
+    "user_id": "1423665222870241422",
+    "username": "builderg1rl",
+    "details": "earned 'first steps'",
+    "timestamp": "2026-03-06T21:33:24.461133"
+  },
+  {
+    "event": "achievement_unlocked",
+    "user_id": "1423665222870241422",
+    "username": "builderg1rl",
+    "details": "earned 'getting started'",
+    "timestamp": "2026-03-06T21:33:24.818790"
+  },
+  {
+    "event": "achievement_unlocked",
+    "user_id": "1423665222870241422",
+    "username": "builderg1rl",
+    "details": "earned 'power user'",
+    "timestamp": "2026-03-06T21:33:25.273811"
+  },
+  {
+    "event": "achievement_unlocked",
+    "user_id": "794619423616532561",
+    "username": "ftsf",
+    "details": "earned 'first steps'",
+    "timestamp": "2026-03-06T21:35:58.060839"
+  },
+  {
+    "event": "achievement_unlocked",
+    "user_id": "794619423616532561",
+    "username": "ftsf",
+    "details": "earned 'early adopter'",
+    "timestamp": "2026-03-06T21:35:58.599559"
+  },
+  {
+    "event": "achievement_unlocked",
+    "user_id": "1423665222870241422",
+    "username": "builderg1rl",
+    "details": "earned 'noticed'",
+    "timestamp": "2026-03-06T21:36:55.041768"
+  }
+]

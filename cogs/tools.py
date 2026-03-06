@@ -4,12 +4,13 @@ import os
 import json
 import secrets
 from datetime import datetime
-from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, write_file, protected_id, send_file_checked
+from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, write_file, protected_id, send_file_checked, send_status
 import sys
 sys.path.append('..')
 import config
 from cogs.utils.network import download_file, upload_file
 from cogs.utils import audio_processing as ap
+from cogs.utils.settings import get_fullbait_mode
 import random
 import shutil
 import os
@@ -20,7 +21,8 @@ class ToolCommands(commands.Cog):
     async def embed_icc_command(self, ctx, *args):
         # Restrict to channel 1469978323667910810
         if ctx.channel.id != 1469978323667910810:
-            await ctx.send("error: this command can only be used in <#1469978323667910810>.")
+            await send_status(ctx, "error: this command can only be used in <#1469978323667910810>.")
+            return
             return
 
         # Parse arguments for 'saveas' option
@@ -32,7 +34,7 @@ class ToolCommands(commands.Cog):
         elif args:
             image_url = args[0]
 
-        msg = await ctx.send("processing image...")
+        msg = await send_status(ctx, "processing image...")
         input_path = f"input_{ctx.author.id}.png"
         output_path = save_as if save_as else f"output_{ctx.author.id}.png"
         icc_profile = os.path.join('assets', 'iccp', 'custom.icc')
@@ -41,23 +43,23 @@ class ToolCommands(commands.Cog):
             if ctx.message.attachments:
                 attachment = ctx.message.attachments[0]
                 if not attachment.filename.lower().endswith('.png'):
-                    await msg.edit(content="error: only PNG images are supported.")
+                    await send_status(ctx, "error: only PNG images are supported.", status_msg=msg)
                     return
                 await attachment.save(input_path)
             elif image_url:
                 if not (image_url.lower().endswith('.png') or ('.png?' in image_url.lower())):
-                    await msg.edit(content="error: only PNG images are supported.")
+                    await send_status(ctx, "error: only PNG images are supported.", status_msg=msg)
                     return
                 import aiohttp
                 async with aiohttp.ClientSession() as session:
                     async with session.get(image_url) as resp:
                         if resp.status != 200:
-                            await msg.edit(content="error: failed to download image from URL.")
+                            await send_status(ctx, "error: failed to download image from URL.", status_msg=msg)
                             return
                         with open(input_path, 'wb') as f:
                             f.write(await resp.read())
             else:
-                await msg.edit(content="error: please attach a PNG image or provide a direct PNG URL.")
+                await send_status(ctx, "error: please attach a PNG image or provide a direct PNG URL.", status_msg=msg)
                 return
 
             # Import the embedder
@@ -88,6 +90,8 @@ class ToolCommands(commands.Cog):
         self.generated_keys = self._load_keys()
         self.presets_file = "data/presets.json"
         self.presets = self._load_presets()
+        self.keys_message_id = None  # Track live keys message for editing
+        self.keys_channel_id = 1478989104497561642  # Channel to post keys
     
     def _load_keys(self):
         """Load keys from file if it exists"""
@@ -132,11 +136,34 @@ class ToolCommands(commands.Cog):
         with open(self.keys_file, "w") as f:
             json.dump(self.generated_keys, f, indent=2)
 
+    def _get_unused_keys(self) -> list:
+        """Get list of unused keys only"""
+        return [k for k, v in self.generated_keys.items() if not v["used"]]
+
+    async def _update_keys_message(self):
+        """Update the live keys message in the channel"""
+        if not self.keys_message_id:
+            return
+        try:
+            channel = self.bot.get_channel(self.keys_channel_id)
+            if not channel:
+                return
+            message = await channel.fetch_message(self.keys_message_id)
+            unused = self._get_unused_keys()
+            if not unused:
+                await message.delete()
+                self.keys_message_id = None
+            else:
+                key_list = "\n".join(unused)
+                await message.edit(content=f"**available keys** ({len(unused)} remaining)\n\n```\n{key_list}\n```")
+        except Exception as e:
+            print(f"Failed to update keys message: {e}")
+
     @commands.command(name='hex')
     async def make_hex(self, ctx, audio_id: str = None):
         # Check if command is in DM or allowed channel
         if ctx.guild is not None and ctx.channel.id != 1458811026450546965:
-            await ctx.send("error: this command can only be used in DMs or in <#1458811026450546965>.")
+            await send_status(ctx, "error: this command can only be used in DMs or in <#1458811026450546965>.")
             return
         
         # Check if user has the required role (check in mutual guild)
@@ -148,7 +175,7 @@ class ToolCommands(commands.Cog):
                 break
         
         if not has_role:
-            await ctx.send("error: you don't have the required role.")
+            await send_status(ctx, "error: you don't have the required role.")
             return
         
         # Delete the command message instantly
@@ -157,14 +184,14 @@ class ToolCommands(commands.Cog):
         except:
             pass
         
-        msg = await ctx.send("generating hex...")
+        msg = await send_status(ctx, "generating hex...")
         if not audio_id:
-            await msg.edit(content="please provide an audio id.")
+            await send_status(ctx, "please provide an audio id.", status_msg=msg)
             return
         try:
             import random
             value = int(audio_id)
-            await ctx.send("WARNING: this only works on certain boomboxes, please use an audio you don't care about first and check f9 before using an audio you care about, also this is pretty easy to bypass, so it isn't 100%")
+            await send_status(ctx, "warning: this only works on certain boomboxes, please use an audio you don't care about first and check f9 before using an audio you care about, also this is pretty easy to bypass, so it isn't 100%")
             hex_digits = format(value, "X")
             zeros_needed = 8164 - 2 - len(hex_digits)
             hex_string = "0x" + "0" * zeros_needed + hex_digits
@@ -176,10 +203,10 @@ class ToolCommands(commands.Cog):
             with open("data/IDs.txt", "a") as f:
                 f.write(f"hash: {audio_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}\n")
             await msg.delete()
-            await ctx.send(file=discord.File(output_filename))
+            await send_status(ctx, file=discord.File(output_filename))
             if os.path.exists(output_filename): os.remove(output_filename)
         except ValueError:
-            await msg.edit(content="error: id must be a valid number.")
+            await send_status(ctx, "error: id must be a valid number.", status_msg=msg)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
 
@@ -187,7 +214,7 @@ class ToolCommands(commands.Cog):
     async def make_hash(self, ctx, target_id: str = None):
         # Check if command is in DM or allowed channel
         if ctx.guild is not None and ctx.channel.id != 1458811026450546965:
-            await ctx.send("error: this command can only be used in DMs or in <#1458811026450546965>.")
+            await send_status(ctx, "error: this command can only be used in DMs or in <#1458811026450546965>.")
             return
         
         # Check if user has the required role (check in mutual guild)
@@ -199,11 +226,11 @@ class ToolCommands(commands.Cog):
                 break
         
         if not has_role:
-            await ctx.send("error: you don't have the required role.")
+            await send_status(ctx, "error: you don't have the required role.")
             return
         
         if not target_id:
-            await ctx.send("need an id first.")
+            await send_status(ctx, "error: need an id first.")
             return
         
         # Delete the command message instantly
@@ -212,7 +239,7 @@ class ToolCommands(commands.Cog):
         except:
             pass
         
-        msg = await ctx.send("generating...")
+        msg = await send_status(ctx, "generating...")
         try:
             import random
             final_string = await run_blocking(protected_id, target_id)
@@ -224,7 +251,7 @@ class ToolCommands(commands.Cog):
             with open("data/IDs.txt", "a") as f:
                 f.write(f"hash: {target_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}\n")
             await msg.delete()
-            await ctx.send("only works on certain boomboxes", file=discord.File(filename))
+            await send_status(ctx, "only works on certain boomboxes", file=discord.File(filename))
             if os.path.exists(filename): os.remove(filename)
         except Exception as e:
             await send_error(ctx, e, status_msg=msg)
@@ -233,14 +260,14 @@ class ToolCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def make_rape(self, ctx, user: discord.Member = None):
         if not user:
-            await ctx.send("mention someone.")
+            await send_status(ctx, "mention someone.")
             return
-        await ctx.send(f"*rapes {user.mention}*\nhttps://tenor.com/view/spiderman-lizard-backshot-gif-27712172")
+        await send_status(ctx, f"*rapes {user.mention}*\nhttps://tenor.com/view/spiderman-lizard-backshot-gif-27712172")
 
     @commands.command(name='status')
     @commands.check(is_allowed_location)
     async def check_status(self, ctx):
-        msg = await ctx.send("checking providers...")
+        msg = await send_status(ctx, "checking providers...")
         from cogs.utils.network import check_providers
         results = await check_providers(self.bot.session)
         
@@ -249,18 +276,18 @@ class ToolCommands(commands.Cog):
             emoji = "🟢" if status == 200 else "🔴"
             embed.add_field(name=f"{emoji} {name}", value=f"code: {status}\nping: {lat}", inline=False)
         
-        await msg.edit(content=None, embed=embed)
+        await send_status(ctx, embed=embed, status_msg=msg)
 
     @commands.command(name='genkey')
     @commands.check(is_allowed_location)
     async def gen_key(self, ctx, count: int = 1):
         """Generate activation keys for the role"""
         if ctx.author.id != 1423665222870241422:
-            await ctx.send("error: you don't have permission to generate keys.")
+            await send_status(ctx, "error: you don't have permission to generate keys.")
             return
         
         if count < 1 or count > 100:
-            await ctx.send("error: count must be between 1 and 100.")
+            await send_status(ctx, "error: count must be between 1 and 100.")
             return
         
         keys = []
@@ -280,37 +307,63 @@ class ToolCommands(commands.Cog):
         with open("data/keys_copy.txt", "w") as f:
             f.write("\n".join(keys))
         
-        await ctx.send(f"generated {count} key(s). check data/keys_copy.txt to copy them.")
+        await send_status(ctx, f"generated {count} key(s). check data/keys_copy.txt to copy them.")
+
+    @commands.command(name='postkeys')
+    async def post_keys(self, ctx):
+        """Post a live message of available keys that updates on redemption (owner only)"""
+        if ctx.author.id != 1423665222870241422:
+            await send_status(ctx, "error: owner only.")
+            return
+        
+        try:
+            channel = self.bot.get_channel(self.keys_channel_id)
+            if not channel:
+                await send_status(ctx, f"error: channel {self.keys_channel_id} not found.")
+                return
+            
+            unused = self._get_unused_keys()
+            if not unused:
+                content = "❌ no keys available to post."
+            else:
+                key_list = "\n".join(unused)
+                content = f"**available keys** ({len(unused)} total)\n\n```\n{key_list}\n```\n\nreply with `!redeem <key>` in <#1465525274874609817> to redeem."
+            
+            message = await channel.send(content)
+            self.keys_message_id = message.id
+            await send_status(ctx, f"posted keys message. link: {message.jump_url}")
+        except Exception as e:
+            await send_error(ctx, e)
 
     @commands.command(name='redeem')
     async def redeem_key(self, ctx, key: str = None):
         """Redeem an activation key to get the role"""
         if ctx.channel.id != 1465525274874609817:
-            await ctx.send("error: use this command in <#1465525274874609817>.")
+            await send_status(ctx, "error: use this command in <#1465525274874609817>.")
             return
         
         if not key:
-            await ctx.send("error: please provide a key.")
+            await send_status(ctx, "error: please provide a key.")
             return
         
         if key not in self.generated_keys:
-            await ctx.send("error: invalid key.")
+            await send_status(ctx, "error: invalid key.")
             return
         
         if self.generated_keys[key]["used"]:
-            await ctx.send("error: this key has already been used.")
+            await send_status(ctx, "error: this key has already been used.")
             return
         
         # Check if user already redeemed a key
         for k, v in self.generated_keys.items():
             if v["used"] and v["user_id"] == ctx.author.id:
-                await ctx.send("error: you have already redeemed a key.")
+                await send_status(ctx, "error: you have already redeemed a key.")
                 return
         
         try:
             role = ctx.guild.get_role(1458951498615750888)
             if not role:
-                await ctx.send("error: role not found.")
+                await send_status(ctx, "error: role not found.")
                 return
             
             await ctx.author.add_roles(role)
@@ -322,7 +375,10 @@ class ToolCommands(commands.Cog):
             self.generated_keys[key]["redemption_order"] = redemption_count
             self._save_keys()
             
-            await ctx.send(f"you now have the role!")
+            # Update the live keys message if it exists
+            await self._update_keys_message()
+            
+            await send_status(ctx, f"you now have the role!")
         except Exception as e:
             await send_error(ctx, e)
 
@@ -331,11 +387,11 @@ class ToolCommands(commands.Cog):
     async def revoke_key(self, ctx, member: discord.Member = None):
         """Revoke a user's key and remove the role from them (owner only)"""
         if not any(r.id == 1458951003725369345 for r in ctx.author.roles):
-            await ctx.send("error: owner only.")
+            await send_status(ctx, "error: owner only.")
             return
         
         if not member:
-            await ctx.send("error: please mention a user.")
+            await send_status(ctx, "error: please mention a user.")
             return
         
         # Find the key for this user
@@ -346,7 +402,7 @@ class ToolCommands(commands.Cog):
                 break
         
         if not user_key:
-            await ctx.send("error: this user has not redeemed a key.")
+            await send_status(ctx, "error: this user has not redeemed a key.")
             return
         
         try:
@@ -358,7 +414,7 @@ class ToolCommands(commands.Cog):
             del self.generated_keys[user_key]
             self._save_keys()
             
-            await ctx.send(f"revoked key for {member.mention}.")
+            await send_status(ctx, f"revoked key for {member.mention}.")
         except Exception as e:
             await send_error(ctx, e)
 
@@ -414,33 +470,33 @@ class ToolCommands(commands.Cog):
         activity = f"• **total commands** - `{total_cmds}`\n• **last command** - `{last_cmd}`"
         embed.add_field(name="bot activity", value=activity, inline=False)
         
-        await ctx.send(embed=embed)
+        await send_status(ctx, embed=embed)
 
     @commands.command(name='createpreset')
     @commands.check(is_allowed_location)
     async def create_preset(self, ctx, name: str = None, *tokens):
         """Create or overwrite a preset. Usage: !createpreset name step1 step2 ..."""
         if not name:
-            await ctx.send("error: please provide a preset name and at least one step.")
+            await send_status(ctx, "error: please provide a preset name and at least one step.")
             return
         if not tokens:
-            await ctx.send("error: please provide at least one processing step.")
+            await send_status(ctx, "error: please provide at least one processing step.")
             return
         # enforce a maximum of 7 steps per preset
         if len(tokens) > 7:
-            await ctx.send("error: too many steps; maximum is 7.")
+            await send_status(ctx, "error: too many steps; maximum is 7.")
             return
         key = name.lower()
         self.presets[key] = {"owner": ctx.author.id, "steps": [t.lower() for t in tokens]}
         self._save_presets()
-        await ctx.send(f"preset '{key}' saved. steps: {', '.join(self.presets[key]['steps'])}")
+        await send_status(ctx, f"preset '{key}' saved. steps: {', '.join(self.presets[key]['steps'])}")
 
     @commands.command(name='presets')
     @commands.check(is_allowed_location)
     async def list_presets(self, ctx):
         """List saved presets."""
         if not self.presets:
-            await ctx.send("no presets saved.")
+            await send_status(ctx, "no presets saved.")
             return
         embed = discord.Embed(title="presets", color=0xE1F6FF)
         embed.set_footer(text="Use !preset <name> to run a preset")
@@ -469,7 +525,7 @@ class ToolCommands(commands.Cog):
 
         # Chunk lines into embed fields without spamming (max ~1024 chars per field)
         if not lines:
-            await ctx.send("no presets saved.")
+            await send_status(ctx, "no presets saved.")
             return
 
         field_lines = []
@@ -491,7 +547,7 @@ class ToolCommands(commands.Cog):
             field_name = "\u200b" if idx > 0 else "\u200b"
             embed.add_field(name=field_name, value=block, inline=False)
 
-        await ctx.send(embed=embed)
+        await send_status(ctx, embed=embed)
 
     @commands.command(name='preset')
     @commands.check(is_allowed_location)
@@ -499,11 +555,11 @@ class ToolCommands(commands.Cog):
         """Run a saved preset. Usage: !preset name [url_or_attach]
         The command downloads an attachment or URL (discord CDN only) and applies the preset steps in order."""
         if not name:
-            await ctx.send("error: please provide a preset name.")
+            await send_status(ctx, "error: please provide a preset name.")
             return
         key = name.lower()
         if key not in self.presets:
-            await ctx.send("error: preset not found.")
+            await send_status(ctx, "error: preset not found.")
             return
 
         # support both normalized dict format and legacy list format
@@ -513,17 +569,11 @@ class ToolCommands(commands.Cog):
         elif isinstance(entry, list):
             steps = entry
         else:
-            await ctx.send("error: preset is malformed.")
+            await send_status(ctx, "error: preset is malformed.")
             return
         # if preset contains fullbait, run status and final result in DMs to avoid posting in channel
         dm_mode = any((isinstance(s, str) and s.strip().split()[0] == 'fullbait') for s in steps)
-        if dm_mode:
-            try:
-                msg = await ctx.author.send("initializing preset...")
-            except Exception:
-                msg = await ctx.send("initializing preset...")
-        else:
-            msg = await ctx.send("initializing preset...")
+        msg = await send_status(ctx, "initializing preset...", to_dm=dm_mode)
         # Download initial input
         try:
             in_path, original_filename = await download_file(ctx, url, status_msg=msg)
@@ -542,7 +592,7 @@ class ToolCommands(commands.Cog):
                     desired_format = step
                     continue
 
-                await msg.edit(content=f"running step {i+1}/{len(steps)}: {step}...")
+                await send_status(ctx, f"running step {i+1}/{len(steps)}: {step}...", status_msg=msg)
 
                 # effects that accept (input_path, output_path, export_format)
                 format_effects = {
@@ -576,7 +626,7 @@ class ToolCommands(commands.Cog):
                         current_path = out_path
                         continue
                     else:
-                        await msg.edit(content="error: createchannels step must be in format 'createchannels <num_channels>'")
+                        await send_status(ctx, "error: createchannels step must be in format 'createchannels <num_channels>'", status_msg=msg)
                         return
 
                 # mp3bait step: e.g. 'mp3bait decoy.mp3 hidden.mp3'
@@ -593,7 +643,7 @@ class ToolCommands(commands.Cog):
                         current_path = out_path
                         continue
                     else:
-                        await msg.edit(content="error: mp3bait step must be in format 'mp3bait <decoy_path> <hidden_path>'")
+                        await send_status(ctx, "error: mp3bait step must be in format 'mp3bait <decoy_path> <hidden_path>'", status_msg=msg)
                         return
 
                 if step == 'compress':
@@ -606,29 +656,33 @@ class ToolCommands(commands.Cog):
                     continue
 
                 if step == 'fullbait':
-                    # require role to use fullbait (same check as original command)
+                    # access depends on global mode
+                    mode = get_fullbait_mode()
                     author_roles = getattr(ctx.author, "roles", []) or []
-                    has_required_role = any(getattr(r, "id", None) == 1464787461719720133 for r in author_roles)
-                    if not has_required_role:
-                        await msg.edit(content="error: you don't have the required role to use fullbait.")
+                    has_required_role = any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in author_roles)
+                    if mode == 'role_only' and not has_required_role:
+                        await send_status(ctx, "error: you don't have the required role to use fullbait.", status_msg=msg)
                         return
 
                     # find fullbaits dir
                     fullbaits_dir = os.path.join(os.path.dirname(config.BAIT_DIRECTORY), "fullbaits")
                     if not os.path.exists(fullbaits_dir): fullbaits_dir = "assets/fullbaits"
                     if not os.path.exists(fullbaits_dir):
-                        await msg.edit(content="error: fullbaits directory not found.")
+                        await send_status(ctx, "error: fullbaits directory not found.", status_msg=msg)
                         return
 
                     all_baits = [f for f in os.listdir(fullbaits_dir) if f.endswith('.ogg')]
                     if not all_baits:
-                        await msg.edit(content="error: no .ogg files in fullbaits directory.")
+                        await send_status(ctx, "error: no .ogg files in fullbaits directory.", status_msg=msg)
                         return
 
                     selected_bait = random.choice(all_baits)
                     bait_path = os.path.join(fullbaits_dir, selected_bait)
                     out_path = f"fullbait_{uuid.uuid4().hex}.ogg"
-                    should_watermark = not any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
+                    if mode == 'everyone_watermark':
+                        should_watermark = True
+                    else:
+                        should_watermark = not any(getattr(r, "id", None) == config.ISRAELITE_ROLE_ID for r in ctx.author.roles)
                     await run_blocking(ap.process_fullbait, current_path, out_path, bait_path, add_watermark=should_watermark)
                     try:
                         if current_path != in_path and os.path.exists(current_path): os.remove(current_path)
@@ -641,11 +695,11 @@ class ToolCommands(commands.Cog):
                     stereobait_dir = os.path.join(os.path.dirname(config.BAIT_DIRECTORY), "stereobait_files")
                     if not os.path.exists(stereobait_dir): stereobait_dir = os.path.join('assets', 'stereobait_files')
                     if not os.path.exists(stereobait_dir):
-                        await msg.edit(content="error: stereobait_files directory not found for preset.")
+                        await send_status(ctx, "error: stereobait_files directory not found for preset.", status_msg=msg)
                         return
                     all_choices = [f for f in os.listdir(stereobait_dir) if os.path.isfile(os.path.join(stereobait_dir, f)) and f.lower().endswith(('.ogg', '.mp3', '.wav', '.flac', '.m4a'))]
                     if not all_choices:
-                        await msg.edit(content="error: no audio files in stereobait_files directory for preset.")
+                        await send_status(ctx, "error: no audio files in stereobait_files directory for preset.", status_msg=msg)
                         return
                     selected_name = random.choice(all_choices)
                     effect1 = os.path.join(stereobait_dir, selected_name)
@@ -674,12 +728,12 @@ class ToolCommands(commands.Cog):
                         # try assets folder fallback
                         bait_dir = os.path.join('assets', 'fullbaits') if os.path.exists(os.path.join('assets', 'fullbaits')) else None
                     if not bait_dir:
-                        await msg.edit(content="error: bait directory not found for 32mono step.")
+                        await send_status(ctx, "error: bait directory not found for 32mono step.", status_msg=msg)
                         return
                     all_baits = [f for f in os.listdir(bait_dir) if os.path.isfile(os.path.join(bait_dir, f))]
                     valid_baits = [f for f in all_baits if f.lower().endswith(('.mp3', '.ogg', '.wav', '.flac'))]
                     if not valid_baits:
-                        await msg.edit(content="error: no audio files in bait directory for 32mono.")
+                        await send_status(ctx, "error: no audio files in bait directory for 32mono.", status_msg=msg)
                         return
                     selected_bait_name = random.choice(valid_baits)
                     selected_bait_path = os.path.join(bait_dir, selected_bait_name)
@@ -706,11 +760,11 @@ class ToolCommands(commands.Cog):
                     img_dir = os.path.join('assets', 'img baits')
                     if not os.path.exists(img_dir): img_dir = 'assets/img baits'
                     if not os.path.exists(img_dir):
-                        await msg.edit(content="error: img baits directory not found for img step.")
+                        await send_status(ctx, "error: img baits directory not found for img step.", status_msg=msg)
                         return
                     images = [f for f in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, f)) and f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
                     if not images:
-                        await msg.edit(content="error: no images available for img step.")
+                        await send_status(ctx, "error: no images available for img step.", status_msg=msg)
                         return
                     selected = random.choice(images)
                     selected_path = os.path.join(img_dir, selected)
@@ -723,7 +777,7 @@ class ToolCommands(commands.Cog):
                     continue
 
                 # unknown step
-                await msg.edit(content=f"error: unknown step '{step}' in preset.")
+                await send_status(ctx, f"error: unknown step '{step}' in preset.", status_msg=msg)
                 return
 
             # check final file size before uploading
@@ -734,14 +788,14 @@ class ToolCommands(commands.Cog):
 
             if size_mb > 17.5:
                 try:
-                    await msg.edit(content="it's over 17.5mb, cut down your file")
+                    await send_status(ctx, "it's over 17.5mb, cut down your file", status_msg=msg)
                 except:
-                    try: await ctx.send("it's over 17.5mb, cut down your file")
+                    try: await send_status(ctx, "it's over 17.5mb, cut down your file")
                     except: pass
                 return
 
             # upload final file
-            await msg.edit(content="uploading final result...")
+            await send_status(ctx, "uploading final result...", status_msg=msg)
             link = await upload_file(self.bot.session, current_path, status_msg=msg)
             if link:
                 try:
@@ -750,14 +804,14 @@ class ToolCommands(commands.Cog):
                                 f"when uploading, call it {stereo_label}\n"
                                 "works best on kornet")
                         if dm_mode:
-                            await ctx.author.send(text)
+                            await send_status(ctx, text, to_dm=True)
                         else:
-                            await ctx.send(text)
+                            await send_status(ctx, text)
                     else:
                         if dm_mode:
-                            await ctx.author.send(f"done: {link}")
+                            await send_status(ctx, f"done: {link}", to_dm=True)
                         else:
-                            await ctx.send(f"{ctx.author.mention} done: {link}")
+                            await send_status(ctx, f"{ctx.author.mention} done: {link}")
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
             else:
@@ -768,14 +822,14 @@ class ToolCommands(commands.Cog):
                                    f"when uploading, call it {stereo_label}\n"
                                    "works best on kornet")
                         if dm_mode:
-                            await ctx.author.send(content=caption, file=discord.File(current_path, filename=stereo_label))
+                            await send_status(ctx, caption, file=discord.File(current_path, filename=stereo_label), to_dm=True)
                         else:
-                            await ctx.send(content=caption, file=discord.File(current_path, filename=stereo_label))
+                            await send_status(ctx, caption, file=discord.File(current_path, filename=stereo_label))
                     else:
                         if dm_mode:
-                            await ctx.author.send(file=discord.File(current_path))
+                            await send_status(ctx, file=discord.File(current_path), to_dm=True)
                         else:
-                            await ctx.send(content=f"{ctx.author.mention} done:", file=discord.File(current_path))
+                            await send_status(ctx, f"{ctx.author.mention} done:", file=discord.File(current_path))
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
         except Exception as e:
@@ -795,7 +849,7 @@ class ToolCommands(commands.Cog):
     async def stereobait(self, ctx, url: str = None):
         """Create a 32-channel stereobait using a random asset as effect1 and
         the provided file (attachment or discord CDN url) as effect2."""
-        msg = await ctx.send("creating stereobait...")
+        msg = await send_status(ctx, "creating stereobait...")
         in_path = None
         out_path = None
         try:
@@ -808,12 +862,12 @@ class ToolCommands(commands.Cog):
             if not os.path.exists(stereobait_dir):
                 stereobait_dir = os.path.join('assets', 'stereobait_files')
             if not os.path.exists(stereobait_dir):
-                await msg.edit(content="error: stereobait_files directory not found.")
+                await send_status(ctx, "error: stereobait_files directory not found.", status_msg=msg)
                 return
 
             candidates = [f for f in os.listdir(stereobait_dir) if os.path.isfile(os.path.join(stereobait_dir, f)) and f.lower().endswith(('.ogg', '.mp3', '.wav', '.flac', '.m4a'))]
             if not candidates:
-                await msg.edit(content="error: no audio files in stereobait_files directory.")
+                await send_status(ctx, "error: no audio files in stereobait_files directory.", status_msg=msg)
                 return
             selected_name = random.choice(candidates)
             effect1 = os.path.join(stereobait_dir, selected_name)
@@ -829,20 +883,20 @@ class ToolCommands(commands.Cog):
 
             if size_mb > 17.5:
                 try:
-                    await msg.edit(content="it's over 17.5mb, cut down your file")
+                    await send_status(ctx, "it's over 17.5mb, cut down your file", status_msg=msg)
                 except:
-                    try: await ctx.send("it's over 17.5mb, cut down your file")
+                    try: await send_status(ctx, "it's over 17.5mb, cut down your file")
                     except: pass
                 return
 
-            await msg.edit(content="uploading final result...")
+            await send_status(ctx, "uploading final result...", status_msg=msg)
             link = await upload_file(self.bot.session, out_path, status_msg=msg)
             if link:
                 try:
                     text = (f"{ctx.author.mention} done: {link}\n"
                             f"when uploading, call it {selected_name}\n"
                             "works best on kornet")
-                    await ctx.send(text)
+                    await send_status(ctx, text)
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
             else:
@@ -850,7 +904,7 @@ class ToolCommands(commands.Cog):
                     caption = (f"{ctx.author.mention} done:\n"
                                f"when uploading, call it {selected_name}\n"
                                "works best on kornet")
-                    await ctx.send(content=caption, file=discord.File(out_path, filename=selected_name))
+                    await send_status(ctx, caption, file=discord.File(out_path, filename=selected_name))
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
 
@@ -866,8 +920,92 @@ class ToolCommands(commands.Cog):
 
     @commands.command(name='stats')
     @commands.check(is_allowed_location)
-    async def show_stats(self, ctx):
-        """Show bot usage statistics with velocity graph"""
+    async def show_stats(self, ctx, timeframe: str = None):
+        """Show bot usage statistics with optional timeframe (hour/day/week or 'graph' for velocity chart)"""
+        
+        # If timeframe is 'graph', show the velocity graph
+        if timeframe and timeframe.lower() == 'graph':
+            await self._show_graph_stats(ctx)
+            return
+        
+        # Use enhanced stats system for other views
+        if timeframe and timeframe.lower() in ['hour', 'day', 'week']:
+            try:
+                from cogs.utils.enhanced_stats import StatsAnalyzer, create_stats_embed
+                analyzer = StatsAnalyzer(self.bot.stats_file, self.bot.history_file)
+                embed = create_stats_embed(analyzer, timeframe=timeframe.lower())
+                await ctx.send(embed=embed)
+                return
+            except Exception as e:
+                print(f"Enhanced stats error: {e}")
+                # Fall back to basic stats
+        
+        # Default: show basic stats with overview
+        await self._show_basic_stats(ctx)
+    
+    async def _show_basic_stats(self, ctx):
+        """Show basic stats overview"""
+        stats = self.bot.command_stats
+        total_cmds = stats.get("total_commands", 0)
+        commands = stats.get("commands", {})
+        users = stats.get("users", {})
+        history = self.bot.command_history
+        errors = stats.get("errors", {})
+        
+        # Calculate most popular time of day
+        hour_counts = [0] * 24
+        for entry in history:
+            try:
+                hour = entry[2] if isinstance(entry, list) else entry.get("hour")
+                if hour is not None and 0 <= hour < 24:
+                    hour_counts[hour] += 1
+            except (IndexError, KeyError, TypeError):
+                continue
+        
+        if sum(hour_counts) > 0:
+            peak_hour = hour_counts.index(max(hour_counts))
+            peak_hour_str = f"{peak_hour:02d}:00"
+        else:
+            peak_hour_str = "n/a"
+        
+        embed = discord.Embed(title="bot statistics", color=0xE1F6FF)
+        
+        # Overview
+        overview = f"• **total commands** - `{total_cmds}`\n• **total users** - `{len(users)}`\n• **unique commands** - `{len(commands)}`\n• **peak hour** - `{peak_hour_str}`"
+        embed.add_field(name="overview", value=overview, inline=False)
+        
+        # Top 5 most used commands
+        if commands:
+            sorted_cmds = sorted(commands.items(), key=lambda x: x[1], reverse=True)[:5]
+            top_cmds = "\n".join([f"• **{i+1}. {cmd}** - {count} uses" for i, (cmd, count) in enumerate(sorted_cmds)])
+            embed.add_field(name="top commands", value=top_cmds, inline=False)
+        
+        # Error rates per command
+        if errors:
+            total_errors = sum(errors.values())
+            sorted_errors = sorted(errors.items(), key=lambda x: x[1], reverse=True)[:3]
+            error_lines = []
+            for cmd, err_count in sorted_errors:
+                cmd_total = commands.get(cmd, 0) + err_count
+                error_rate = (err_count / cmd_total * 100) if cmd_total > 0 else 0
+                error_lines.append(f"• **{cmd}** - {err_count} errors ({error_rate:.1f}%)")
+            embed.add_field(name="errors", value="\n".join(error_lines) if error_lines else "• none", inline=False)
+        
+        # Top 5 most active users
+        if users:
+            sorted_users = sorted(users.items(), key=lambda x: x[1].get("commands", 0), reverse=True)[:5]
+            top_users_list = []
+            for i, (user_id, data) in enumerate(sorted_users):
+                username = data.get("username", "unknown")
+                top_users_list.append(f"• **{i+1}. {username}** - {data.get('commands', 0)} commands")
+            top_users = "\n".join(top_users_list)
+            embed.add_field(name="top users", value=top_users, inline=False)
+        
+        embed.set_footer(text="use !stats <hour/day/week> for timeframe view • !stats graph for velocity chart")
+        await ctx.send(embed=embed)
+    
+    async def _show_graph_stats(self, ctx):
+        """Show velocity graph stats (original implementation)"""
         stats = self.bot.command_stats
         total_cmds = stats.get("total_commands", 0)
         commands = stats.get("commands", {})
@@ -1018,34 +1156,34 @@ class ToolCommands(commands.Cog):
         if graph_path and os.path.exists(graph_path):
             file = discord.File(graph_path, filename="velocity.png")
             embed.set_image(url="attachment://velocity.png")
-            await ctx.send(embed=embed, file=file)
+            await send_status(ctx, embed=embed, file=file)
             os.remove(graph_path)
         else:
-            await ctx.send(embed=embed)
+            await send_status(ctx, embed=embed)
 
     @commands.command(name='presetdelete')
     @commands.check(is_allowed_location)
     async def delete_preset(self, ctx, name: str = None):
         """Delete a preset you created. Usage: !presetdelete name"""
         if not name:
-            await ctx.send("error: please provide a preset name to delete.")
+            await send_status(ctx, "error: please provide a preset name to delete.")
             return
         key = name.lower()
         if key not in self.presets:
-            await ctx.send("error: preset not found.")
+            await send_status(ctx, "error: preset not found.")
             return
         entry = self.presets.get(key)
         owner = entry.get('owner') if isinstance(entry, dict) else None
         # allow deletion if owner matches or user has owner role
         is_owner_role = any(getattr(r, 'id', None) == 1458951003725369345 for r in ctx.author.roles)
         if owner is not None and owner != ctx.author.id and not is_owner_role:
-            await ctx.send("error: you can only delete presets you created.")
+            await send_status(ctx, "error: you can only delete presets you created.")
             return
         # delete and save
         try:
             del self.presets[key]
             self._save_presets()
-            await ctx.send(f"preset '{key}' deleted.")
+            await send_status(ctx, f"preset '{key}' deleted.")
         except Exception as e:
             await send_error(ctx, e)
 
@@ -1055,7 +1193,7 @@ class ToolCommands(commands.Cog):
         user_id = ctx.author.id
         
         if user_id not in self.bot.active_tasks:
-            await ctx.send("error: you don't have any active tasks running.")
+            await send_status(ctx, "error: you don't have any active tasks running.")
             return
         
         task_info = self.bot.active_tasks[user_id]
@@ -1075,22 +1213,22 @@ class ToolCommands(commands.Cog):
         
         if task_msg:
             try:
-                await task_msg.edit(content="ok! canceled")
+                await send_status(ctx, "ok! canceled", status_msg=task_msg)
             except:
-                await ctx.send("ok! canceled")
+                await send_status(ctx, "ok! canceled")
         else:
-            await ctx.send("ok! canceled")
+            await send_status(ctx, "ok! canceled")
 
     @commands.command(name='nuke')
     async def nuke_channel(self, ctx):
         """Delete all messages in the channel (owner only)"""
         if not any(r.id == 1458951003725369345 for r in ctx.author.roles):
-            await ctx.send("error: owner only.")
+            await send_status(ctx, "error: owner only.")
             return
         
         try:
             deleted = await ctx.channel.purge(limit=None, bulk=True)
-            await ctx.send(f"nuked {len(deleted)} messages.")
+            await send_status(ctx, f"nuked {len(deleted)} messages.")
         except Exception as e:
             await send_error(ctx, e)
 

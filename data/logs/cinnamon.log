@@ -1,0 +1,78 @@
+[2026-03-05T15:58:07.939972] [INFO    ] Bot starting up
+[2026-03-05T16:00:35.453795] [INFO    ] Bot starting up
+[2026-03-05T16:01:12.770342] [INFO    ] Bot starting up
+[2026-03-05T16:01:13.897738] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:02:18.863510] [INFO    ] Bot starting up
+[2026-03-05T16:02:19.895763] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:05:44.182478] [INFO    ] Bot starting up
+[2026-03-05T16:05:45.281973] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:07:38.507711] [INFO    ] Bot starting up
+[2026-03-05T16:07:39.610257] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:09:08.098571] [INFO    ] Bot starting up
+[2026-03-05T16:09:09.184727] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:19:18.487121] [INFO    ] Bot starting up
+[2026-03-05T16:19:19.630501] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:32:13.742901] [INFO    ] Bot starting up
+[2026-03-05T16:32:14.766622] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:42:44.133245] [INFO    ] Bot starting up
+[2026-03-05T16:42:49.408993] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T16:46:54.304623] [ERROR   ] Command error: revoke - Member "jRsxCKEXdhoFvvUDQj608J5qrmOy3TzDJc5RDEFjJhs" not found. | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-05T16:47:42.134705] [INFO    ] Bot starting up
+[2026-03-05T16:47:47.507986] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-05T17:16:37.342886] [ERROR   ] Command error: 32mono - The check functions for command 32mono failed. | user_id=1110764678558265404 | username=sac.mp3
+[2026-03-05T18:55:57.426491] [INFO    ] Bot starting up
+[2026-03-05T18:55:58.519940] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T05:20:58.584450] [ERROR   ] Command error: unknown - Command "reedem" is not found | user_id=1375888788802375821 | username=egorkarecords.
+[2026-03-06T05:28:14.796969] [ERROR   ] Command error: 2db - The check functions for command 2db failed. | user_id=1392892548032368803 | username=n6y5
+[2026-03-06T14:04:35.611294] [INFO    ] Bot starting up
+[2026-03-06T14:04:42.795187] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:07:03.545649] [INFO    ] Bot starting up
+[2026-03-06T14:07:04.614796] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:08:06.326758] [INFO    ] Bot starting up
+[2026-03-06T14:08:07.331903] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:09:54.084573] [INFO    ] Bot starting up
+[2026-03-06T14:09:55.251029] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:10:55.373592] [INFO    ] Bot starting up
+[2026-03-06T14:10:56.525064] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:13:53.708217] [INFO    ] Bot starting up
+[2026-03-06T14:13:54.763861] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:17:10.416104] [INFO    ] Bot starting up
+[2026-03-06T14:17:11.578516] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:18:18.141014] [INFO    ] Bot starting up
+[2026-03-06T14:18:19.232018] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:21:46.190028] [INFO    ] Bot starting up
+[2026-03-06T14:21:47.344208] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:24:56.946991] [INFO    ] Bot starting up
+[2026-03-06T14:24:58.164079] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:26:18.551774] [INFO    ] Bot starting up
+[2026-03-06T14:26:19.596792] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T14:37:28.227462] [INFO    ] Bot starting up
+[2026-03-06T14:37:29.376943] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T15:36:32.057796] [INFO    ] Bot starting up
+[2026-03-06T15:36:37.706089] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:33:01.970886] [INFO    ] Bot starting up
+[2026-03-06T21:33:03.861720] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:36:47.930565] [ERROR   ] Command error: unknown - Command "achievments" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-06T21:38:37.608989] [INFO    ] Bot starting up
+[2026-03-06T21:38:39.027698] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:40:03.463352] [ERROR   ] Command error: unknown - Command "community" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-06T21:42:33.386207] [INFO    ] Bot starting up
+[2026-03-06T21:42:34.950607] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:43:03.887577] [INFO    ] Bot starting up
+[2026-03-06T21:43:05.533009] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:43:43.819721] [INFO    ] Bot starting up
+[2026-03-06T21:43:45.186721] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:45:14.494931] [INFO    ] Bot starting up
+[2026-03-06T21:45:15.763265] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:46:23.259946] [INFO    ] Bot starting up
+[2026-03-06T21:46:24.396566] [INFO    ] Bot shutting down
+[2026-03-06T21:46:50.704549] [INFO    ] Bot starting up
+[2026-03-06T21:46:51.701095] [INFO    ] Bot shutting down
+[2026-03-06T21:47:14.426335] [INFO    ] Bot starting up
+[2026-03-06T21:47:15.495826] [INFO    ] Bot shutting down
+[2026-03-06T21:47:40.529903] [INFO    ] Bot starting up
+[2026-03-06T21:47:41.660563] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-06T21:48:30.053521] [INFO    ] Bot starting up
+[2026-03-06T21:48:31.071552] [INFO    ] Bot shutting down
+[2026-03-06T21:53:24.753507] [INFO    ] Bot starting up
+[2026-03-06T21:53:25.906557] [INFO    ] Admin dashboard started on http://127.0.0.1:5000

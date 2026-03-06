@@ -139,11 +139,10 @@
     "redeemed_at": null
   },
   "fxTUAHC4ngl8UKFvUNzEkyPmtRQ1jfyms6584WhusAA": {
-    "used": true,
-    "user_id": 1185412456915419207,
+    "used": false,
+    "user_id": null,
     "created_at": "2026-03-05T16:43:34.173384",
-    "redeemed_at": "2026-03-06T18:49:05.867540",
-    "redemption_order": 26
+    "redeemed_at": null
   },
   "jj26dlNs6vj1xGgqv_5xjK2KxpsixYofyqFYpkxiljA": {
     "used": false,
@@ -221,11 +220,10 @@
     "redemption_order": 23
   },
   "5u5AMiGVK8gqAnx9GVXNnGGg94iXD-5--NwqAi3a66Y": {
-    "used": true,
-    "user_id": 763054943216074773,
+    "used": false,
+    "user_id": null,
     "created_at": "2026-03-05T16:48:02.820188",
-    "redeemed_at": "2026-03-06T18:39:39.062144",
-    "redemption_order": 25
+    "redeemed_at": null
   },
   "-DVYj4N1o31sjlLcQGATS9jxM-iU8-8sIF008YyDr5M": {
     "used": false,

@@ -7,7 +7,11 @@ import os
 import shutil
 import json
 from datetime import datetime
-from cogs.utils.helpers import load_assets, run_blocking, is_allowed_location
+from cogs.utils.helpers import load_assets, run_blocking, is_allowed_location, send_status
+from cogs.utils.logging_system import init_logger, get_logger
+from cogs.utils.fuzzy_match import find_similar_commands, get_suggestion_message, find_best_match
+from cogs.utils.help_system import create_help_embed, create_command_help_embed, get_all_command_names, get_category_names
+from cogs.utils.enhanced_stats import StatsAnalyzer, create_stats_embed, create_user_profile_embed
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -22,6 +26,8 @@ class OptimizedBot(commands.Bot):
         self.command_stats = self._load_stats()
         self.command_history = self._load_history()
         self.active_tasks = {}  # user_id: task_info for cancellation
+        self.start_time = datetime.now()  # Track bot start time
+        self.logger = None  # Will be initialized in setup_hook
     
     def _load_stats(self):
         """Load command statistics from file"""
@@ -53,14 +59,31 @@ class OptimizedBot(commands.Bot):
         # Create backups directory if it doesn't exist
         if not os.path.exists("data/backups"):
             os.makedirs("data/backups")
+        # Initialize enhanced logger
+        self.logger = init_logger("cinnamon", "data/logs", max_size_mb=10.0, max_files=10)
+        self.logger.info("Bot starting up")
         # Load Cogs
         await self.load_extension('cogs.audio')
         await self.load_extension('cogs.tools')
         # Start auto-backup task
         self.auto_backup.start()
+        # Admin dashboard enabled
+        self._start_dashboard()
 
+    def _start_dashboard(self):
+        """Start admin dashboard in background thread"""
+        try:
+            from cogs.utils.admin_dashboard import AdminDashboard
+            dashboard = AdminDashboard(self, host="127.0.0.1", port=5000)
+            dashboard.run_async()
+            self.logger.info("Admin dashboard started on http://127.0.0.1:5000")
+        except Exception as e:
+            print(f"Failed to start admin dashboard: {e}")
+    
     async def close(self):
         from cogs.utils import helpers
+        if self.logger:
+            self.logger.info("Bot shutting down")
         if helpers.EXECUTOR: helpers.EXECUTOR.shutdown(wait=False)
         if self.session:
             await self.session.close()
@@ -145,14 +168,15 @@ async def on_command(ctx):
 
 @bot.event
 async def on_command_error(ctx, error):
-    """Log all command errors"""
-    # Log with real user info
-    try:
-        error_msg = f"[{datetime.now().isoformat()}] User: {ctx.author} ({ctx.author.id}) | Command: {ctx.command} | Error: {str(error)}\n"
-        with open("data/logs/errors.log", "a") as f:
-            f.write(error_msg)
-    except Exception as e:
-        print(f"Failed to log error: {e}")
+    """Log all command errors with enhanced logging and fuzzy matching"""
+    # Enhanced logging
+    if bot.logger:
+        bot.logger.command_error(
+            str(ctx.author.id),
+            str(ctx.author),
+            str(ctx.command) if ctx.command else "unknown",
+            str(error)
+        )
     
     # Track error rates per command
     if ctx.command:
@@ -168,6 +192,21 @@ async def on_command_error(ctx, error):
         except Exception as e:
             print(f"Failed to save error stats: {e}")
     
+    # Handle command not found with fuzzy matching
+    if isinstance(error, commands.CommandNotFound):
+        # Extract the command name from the error message
+        import re
+        match = re.search(r'Command "(.+?)" is not found', str(error))
+        if match:
+            invalid_cmd = match.group(1)
+            all_cmds = get_all_command_names()
+            suggestions = find_similar_commands(invalid_cmd, all_cmds, threshold=0.5, max_suggestions=3)
+            
+            if suggestions:
+                suggestion_msg = get_suggestion_message(invalid_cmd, suggestions)
+                await send_status(ctx, suggestion_msg)
+                return
+    
     print(f"Error logged: {error}")
 
 def has_required_role(ctx):
@@ -179,50 +218,31 @@ def has_required_role(ctx):
     return False
 
 @bot.command(name='help', aliases=['cmds', 'commands'])
-async def help_menu(ctx):
+async def help_menu(ctx, *, query: str = None):
+    """Enhanced help command with categories and detailed command info"""
     has_role = has_required_role(ctx)
     
-    if has_role:
-        embed = discord.Embed(title="cinnamon", description="audio processing for discord", color=0xE1F6FF)
+    if query:
+        # Check if it's a specific command
+        command_embed = create_command_help_embed(query.lower())
+        if command_embed:
+            await ctx.send(embed=command_embed)
+            return
         
-        embed.add_field(
-            name="download & convert",
-            value="• **!download** - youtube, soundcloud, pekora.zip\n• **!convert** - mp3, ogg, wav, flac, m4a\n• **!compress** - reduce file size (96kbps)",
-            inline=False
-        )
+        # Check if it's a category
+        category_names = get_category_names()
+        matching_category = next((cat for cat in category_names if cat.lower() == query.lower()), None)
+        if matching_category:
+            embed = create_help_embed(has_premium=has_role, category=matching_category)
+            await ctx.send(embed=embed)
+            return
         
-        embed.add_field(
-            name="audio processing",
-            value="• **!loud** - 300db gain boost\n• **!loudv2** - vocal-forward processing\n• **!nobass** - remove low frequencies\n• **!2db** - normalize to -2db\n• **!intro** - add intro to songs",
-            inline=False
-        )
-        
-        embed.add_field(
-            name="advanced techniques",
-            value="• **!32mono** - bait for 2018-2020 (works with .ogg)\n• **!fullbait** - bait for 2020 (works with .ogg)\n• **!mp3bait** - bait for 2017-2018 (mp3)\n• **!img** - embed audio in png images\n• **!createchannels** - create 1-32 channel audio",
-            inline=False
-        )
-        
-        embed.add_field(
-            name="anti-logger tools",
-            value="• **!hex** - padded hex generation\n• **!hash** - 16kb hash generation",
-            inline=False
-        )
-        
-        embed.add_field(
-            name="utilities",
-            value="• **!stats** - bot usage stats\n• **!whois** - user profiles\n• **!cancel** - cancel processing\n• **!createpreset** - save a preset (e.g. !createpreset name loud img)\n• **!presets** - list your presets\n• **!preset <name>** - run a preset",
-            inline=False
-        )
-        
-        embed.set_footer(text="supported formats: mp3, ogg, wav, flac, m4a")
+        # Not found
+        await send_status(ctx, f"no help found for '{query}'. try !help to see all commands.")
     else:
-        embed = discord.Embed(title="cinnamon", description="audio processing for discord", color=0xE1F6FF)
-        embed.add_field(name="!preview", value='see all available commands', inline=False)
-        embed.add_field(name="!redeem [key]", value='redeem a key to get access', inline=False)
-        embed.set_footer(text="get access to unlock audio processing")
-    
-    await ctx.send(embed=embed)
+        # Main help overview
+        embed = create_help_embed(has_premium=has_role)
+        await ctx.send(embed=embed)
 
 @bot.command(name='preview')
 async def preview_menu(ctx):
@@ -270,7 +290,7 @@ async def preview_menu(ctx):
     )
     
     embed.set_footer(text="supported formats: mp3, ogg, wav, flac, m4a")
-    await ctx.send(embed=embed)
+    await send_status(ctx, embed=embed)
 
 if __name__ == "__main__":
     bot.run(config.TOKEN)
