@@ -7,6 +7,9 @@ from datetime import datetime
 from pydub import AudioSegment
 import config
 import discord
+from cogs.utils.logging_system import get_logger
+
+logger = get_logger()
 
 # --- ASSETS ---
 ASSET_CACHE = {}
@@ -48,7 +51,8 @@ def format_text(message: str) -> str:
         if re.search(r'[a-z0-9]$', s):
             s = s + '.'
         return s
-    except Exception:
+    except Exception as e:
+        logger.error(f"format_text error: {e}")
         return str(message)
 
 
@@ -60,54 +64,57 @@ def _normalize_embed(embed: discord.Embed) -> discord.Embed:
     if getattr(embed, 'title', None):
         try:
             embed.title = format_text(embed.title).rstrip('.')
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"_normalize_embed title normalization failed: {e}")
     if getattr(embed, 'description', None):
         try:
             embed.description = format_text(embed.description)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"_normalize_embed description normalization failed: {e}")
     # fields: collect and re-add to ensure updates apply cleanly
     try:
         fields = [(f.name, f.value, f.inline) for f in getattr(embed, 'fields', [])]
         # clear existing fields
         try:
             embed.clear_fields()
-        except Exception:
+        except Exception as e:
             # fallback: recreate by assigning _fields if present
+            logger.debug(f"_normalize_embed fields extraction failed: {e}")
             if hasattr(embed, '_fields'):
                 embed._fields = []
         for name, value, inline in fields:
             n = format_text(name)
             v = format_text(value)
             embed.add_field(name=n, value=v, inline=inline)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"_normalize_embed fields re-add failed: {e}")
     # footer
     try:
         if getattr(embed, 'footer', None) and getattr(embed.footer, 'text', None):
             embed.set_footer(text=format_text(embed.footer.text))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"_normalize_embed footer normalization failed: {e}")
     # author (preserve icon/url but normalize name)
     try:
         if getattr(embed, 'author', None) and getattr(embed.author, 'name', None):
             try:
                 icon = getattr(embed.author, 'icon_url', None)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"_normalize_embed author icon fetch failed: {e}")
                 icon = None
             try:
                 url = getattr(embed.author, 'url', None)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"_normalize_embed author url fetch failed: {e}")
                 url = None
             try:
                 # avoid forcing a trailing period on author names
                 author_name = format_text(embed.author.name).rstrip('.')
                 embed.set_author(name=author_name, icon_url=icon, url=url)
-            except Exception:
-                pass
-    except Exception:
-        pass
+            except Exception as e:
+                logger.debug(f"_normalize_embed author name normalization failed: {e}")
+    except Exception as e:
+        logger.debug(f"_normalize_embed outer exception: {e}")
     return embed
 
 
@@ -152,13 +159,15 @@ async def send_status(ctx, content: str = None, *, embed: discord.Embed = None, 
             if status_msg:
                 await status_msg.edit(content=text or 'error.')
                 return status_msg
-        except:
+        except Exception as e:
+            logger.debug(f"send_status fallback status_msg.edit failed: {e}")
             pass
         try:
             if to_dm:
                 return await ctx.author.send(text or '')
             return await ctx.send(text or '')
-        except:
+        except Exception as e:
+            logger.debug(f"send_status final fallback failed: {e}")
             return None
 
 def load_assets():
@@ -170,7 +179,7 @@ def load_assets():
             ASSET_CACHE["cinnamon_seg"] = AudioSegment.from_file(config.CINNAMON_FILE)
         print("assets cached successfully.")
     except Exception as e:
-        print(f"warning: could not cache assets: {e}")
+        logger.error(f"warning: could not cache assets: {e}")
 
 # --- CONCURRENCY ---
 EXECUTOR = None
@@ -190,8 +199,9 @@ async def run_blocking(func, *args, **kwargs):
                 EXECUTOR.shutdown(wait=False)
             EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
             return await loop.run_in_executor(EXECUTOR, partial)
-        except:
+        except Exception as e:
             # Fallback: run in current thread
+            logger.debug(f"Executor recreation failed: {e}")
             return partial()
 
 # --- FILE OPS ---

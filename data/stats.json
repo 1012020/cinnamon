@@ -1,36 +1,36 @@
 {
-  "total_commands": 1329,
+  "total_commands": 1601,
   "commands": {
-    "hash": 73,
-    "img": 159,
-    "loud": 57,
-    "createchannels": 45,
-    "fullbait": 160,
-    "help": 54,
-    "2db": 11,
-    "mp3bait": 41,
-    "redeem": 26,
-    "genkey": 5,
-    "download": 70,
-    "compress": 48,
-    "stats": 10,
-    "32mono": 94,
-    "convert": 68,
-    "loudv2": 63,
-    "hex": 24,
+    "hash": 99,
+    "img": 171,
+    "loud": 61,
+    "createchannels": 46,
+    "fullbait": 196,
+    "help": 77,
+    "2db": 12,
+    "mp3bait": 43,
+    "redeem": 73,
+    "genkey": 6,
+    "download": 95,
+    "compress": 50,
+    "stats": 11,
+    "32mono": 116,
+    "convert": 77,
+    "loudv2": 76,
+    "hex": 29,
     "rape": 7,
     "status": 1,
-    "intro": 9,
-    "nobass": 14,
-    "cancel": 10,
+    "intro": 16,
+    "nobass": 22,
+    "cancel": 11,
     "createpreset": 38,
     "preset": 51,
-    "presets": 20,
+    "presets": 21,
     "presetdelete": 2,
-    "embed": 62,
+    "embed": 70,
     "nuke": 4,
-    "stereobait": 73,
-    "fullbaitallowed": 1,
+    "stereobait": 87,
+    "fullbaitallowed": 4,
     "revoke": 2,
     "fullbaitdisable": 1,
     "whois": 2,
@@ -46,23 +46,23 @@
   "users": {
     "1425197398816329778": {
       "username": "kingofcucks13",
-      "commands": 132,
-      "last_command": "2026-03-06T10:35:20.667821"
+      "commands": 135,
+      "last_command": "2026-03-08T22:06:07.230071"
     },
     "1208836383733710952": {
       "username": "ghostmanewashere",
-      "commands": 162,
-      "last_command": "2026-03-04T08:58:35.563136"
+      "commands": 171,
+      "last_command": "2026-03-10T10:41:09.491077"
     },
     "1110764678558265404": {
       "username": "sac.mp3",
-      "commands": 88,
-      "last_command": "2026-03-05T17:17:10.151593"
+      "commands": 98,
+      "last_command": "2026-03-20T21:01:19.983856"
     },
     "1053600471278956615": {
       "username": "32tracks",
-      "commands": 146,
-      "last_command": "2026-03-06T08:21:34.465010"
+      "commands": 161,
+      "last_command": "2026-03-22T22:20:27.133603"
     },
     "787860220030222336": {
       "username": "kaiori",
@@ -71,13 +71,13 @@
     },
     "794619423616532561": {
       "username": "ftsf",
-      "commands": 39,
-      "last_command": "2026-03-06T21:36:25.635018"
+      "commands": 53,
+      "last_command": "2026-03-15T21:35:39.031636"
     },
     "1423665222870241422": {
       "username": "builderg1rl",
-      "commands": 434,
-      "last_command": "2026-03-06T21:47:48.161184"
+      "commands": 474,
+      "last_command": "2026-03-20T19:02:31.606808"
     },
     "1249721512265781358": {
       "username": "6w9w",
@@ -91,13 +91,13 @@
     },
     "384172491750244353": {
       "username": "p5gj",
-      "commands": 32,
-      "last_command": "2026-03-06T10:36:50.073727"
+      "commands": 35,
+      "last_command": "2026-03-21T04:15:57.262209"
     },
     "785259144189181972": {
       "username": "jewlymon",
-      "commands": 28,
-      "last_command": "2026-03-06T10:56:38.096897"
+      "commands": 31,
+      "last_command": "2026-03-09T12:09:39.339937"
     },
     "747934443389321327": {
       "username": "wx1q",
@@ -106,18 +106,18 @@
     },
     "810511574682697758": {
       "username": "mintiess",
-      "commands": 18,
-      "last_command": "2026-03-04T10:51:05.944010"
+      "commands": 29,
+      "last_command": "2026-03-17T04:23:38.343242"
     },
     "1392892548032368803": {
       "username": "n6y5",
-      "commands": 35,
-      "last_command": "2026-03-06T05:28:36.661116"
+      "commands": 57,
+      "last_command": "2026-03-22T06:59:59.917118"
     },
     "841183412291239937": {
       "username": "jewel.xxet",
-      "commands": 39,
-      "last_command": "2026-03-06T02:22:47.663283"
+      "commands": 44,
+      "last_command": "2026-03-22T05:58:42.072583"
     },
     "711567807929647167": {
       "username": "jsbv11",
@@ -126,28 +126,28 @@
     },
     "1475839298413793442": {
       "username": "falsemedia",
-      "commands": 17,
-      "last_command": "2026-03-06T18:03:46.883102"
+      "commands": 33,
+      "last_command": "2026-03-22T17:24:00.098542"
     },
     "984056387879440384": {
       "username": "drinkarizona.com",
-      "commands": 1,
-      "last_command": "2026-03-06T02:22:08.626358"
+      "commands": 5,
+      "last_command": "2026-03-08T02:08:59.784305"
     },
     "1299725266905595974": {
       "username": "0_d886",
-      "commands": 13,
-      "last_command": "2026-03-06T10:10:04.097109"
+      "commands": 27,
+      "last_command": "2026-03-22T05:52:46.886272"
     },
     "1375888788802375821": {
       "username": "egorkarecords.",
-      "commands": 4,
-      "last_command": "2026-03-06T05:52:34.414614"
+      "commands": 10,
+      "last_command": "2026-03-11T16:00:38.161018"
     },
     "1163916829731848283": {
       "username": "iwanttoflylikeaduck",
-      "commands": 1,
-      "last_command": "2026-03-06T05:22:42.540321"
+      "commands": 2,
+      "last_command": "2026-03-18T10:04:47.016526"
     },
     "1167107361148784745": {
       "username": "4ubk",
@@ -168,19 +168,116 @@
       "username": "sinnsinnsinnsinn",
       "commands": 1,
       "last_command": "2026-03-06T18:49:05.419391"
+    },
+    "715535326126538782": {
+      "username": "zoy1x",
+      "commands": 1,
+      "last_command": "2026-03-07T00:57:12.520615"
+    },
+    "1001984075625668741": {
+      "username": "_bizarra_",
+      "commands": 1,
+      "last_command": "2026-03-07T02:44:02.677575"
+    },
+    "1008399981721440287": {
+      "username": "q6vk",
+      "commands": 1,
+      "last_command": "2026-03-07T05:10:45.020708"
+    },
+    "1399459210076492046": {
+      "username": "corpsebash",
+      "commands": 15,
+      "last_command": "2026-03-08T03:32:41.442916"
+    },
+    "1106905452119339068": {
+      "username": "urlocaldawg",
+      "commands": 33,
+      "last_command": "2026-03-09T09:08:06.571740"
+    },
+    "1242863146859888642": {
+      "username": "pharokms",
+      "commands": 1,
+      "last_command": "2026-03-07T23:32:40.657474"
+    },
+    "1454568165551116393": {
+      "username": "v8bh",
+      "commands": 2,
+      "last_command": "2026-03-08T03:45:07.548157"
+    },
+    "1467374744364908707": {
+      "username": "5fckk",
+      "commands": 9,
+      "last_command": "2026-03-19T10:24:00.964293"
+    },
+    "1445222510030487664": {
+      "username": "umcara0690",
+      "commands": 1,
+      "last_command": "2026-03-08T05:04:33.379862"
+    },
+    "1312043063224438849": {
+      "username": "oxga",
+      "commands": 3,
+      "last_command": "2026-03-08T21:14:54.336286"
+    },
+    "1436762768962486283": {
+      "username": ".pheds",
+      "commands": 1,
+      "last_command": "2026-03-08T21:11:56.980446"
+    },
+    "1416255704880254998": {
+      "username": "txbyyyy",
+      "commands": 1,
+      "last_command": "2026-03-08T23:10:08.322396"
+    },
+    "901434030363402260": {
+      "username": "pcbv",
+      "commands": 1,
+      "last_command": "2026-03-09T05:16:14.636591"
+    },
+    "1434309303275098175": {
+      "username": "kv2j",
+      "commands": 1,
+      "last_command": "2026-03-09T14:06:10.112069"
+    },
+    "1475031009362706512": {
+      "username": "smokingthraxxinbaghdad",
+      "commands": 7,
+      "last_command": "2026-03-13T19:11:40.314847"
+    },
+    "1133373703841914900": {
+      "username": "robloxrevival",
+      "commands": 9,
+      "last_command": "2026-03-17T04:26:58.353912"
+    },
+    "1465429205486403790": {
+      "username": "khqh",
+      "commands": 1,
+      "last_command": "2026-03-17T19:00:17.055014"
+    },
+    "1072553660405526558": {
+      "username": "7amc",
+      "commands": 3,
+      "last_command": "2026-03-17T23:38:56.796977"
+    },
+    "1355866861459210361": {
+      "username": "todesfahne",
+      "commands": 5,
+      "last_command": "2026-03-18T12:58:34.338096"
     }
   },
   "errors": {
     "mp3bait": 3,
     "rape": 2,
     "download": 2,
-    "fullbait": 6,
+    "fullbait": 7,
     "img": 1,
     "createpreset": 2,
     "loud": 2,
-    "32mono": 3,
-    "stats": 1,
+    "32mono": 5,
+    "stats": 2,
     "revoke": 1,
-    "2db": 1
+    "2db": 1,
+    "intro": 2,
+    "stereobait": 1
   }
 }

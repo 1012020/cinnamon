@@ -12,6 +12,8 @@ from cogs.utils.logging_system import init_logger, get_logger
 from cogs.utils.fuzzy_match import find_similar_commands, get_suggestion_message, find_best_match
 from cogs.utils.help_system import create_help_embed, create_command_help_embed, get_all_command_names, get_category_names
 from cogs.utils.enhanced_stats import StatsAnalyzer, create_stats_embed, create_user_profile_embed
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = 50_000_000  # limit to mitigate decompression bombs
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -104,13 +106,16 @@ class OptimizedBot(commands.Bot):
                     backups = sorted([f for f in os.listdir("data/backups") if f.startswith("keys_")])
                     if len(backups) > 24:
                         for old_backup in backups[:-24]:
-                            os.remove(os.path.join("data", "backups", old_backup))
+                                try:
+                                    os.remove(os.path.join("data", "backups", old_backup))
+                                except Exception as e:
+                                    print(f"Failed to remove old backup {old_backup}: {e}")
         except Exception as e:
             try:
                 with open("data/logs/errors.log", "a") as f:
                     f.write(f"[{datetime.now().isoformat()}] Auto-backup error: {str(e)}\\n")
-            except:
-                print(f"Auto-backup error: {e}")
+            except Exception as e2:
+                print(f"Auto-backup logging error: {e2}")
 
 bot = OptimizedBot()
 

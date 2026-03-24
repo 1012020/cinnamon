@@ -7,6 +7,9 @@ import asyncio
 import yt_dlp
 import config
 from cogs.utils.helpers import send_error, send_status
+from cogs.utils.logging_system import get_logger
+
+logger = get_logger()
 
 async def _upload_litterbox(session, file_path, expiration):
     url = "https://litterbox.catbox.moe/resources/internals/api.php"
@@ -75,12 +78,15 @@ async def upload_file(session, file_path, expiration="1h", status_msg=None):
             t0 = time.monotonic()
             async with session.head(url, timeout=2) as resp:
                 return time.monotonic() - t0
-        except:
+        except Exception as e:
+            logger.debug(f"Ping check failed for {url}: {e}")
             return float('inf')
 
     if status_msg:
-        try: await status_msg.edit(content="checking upload speeds...")
-        except: pass
+        try:
+            await status_msg.edit(content="checking upload speeds...")
+        except Exception as e:
+            logger.debug(f"Failed to edit status_msg: {e}")
 
     t_lat, tp_lat, l_lat = await asyncio.gather(
         check_ping("https://tmpfiles.org/"),
@@ -98,8 +104,10 @@ async def upload_file(session, file_path, expiration="1h", status_msg=None):
     for lat, name, func in providers:
         if status_msg:
             ping_str = f"{int(lat*1000)}ms" if lat != float('inf') else "N/A"
-            try: await status_msg.edit(content=f"uploading to {name} ({ping_str})...")
-            except: pass
+            try:
+                await status_msg.edit(content=f"uploading to {name} ({ping_str})...")
+            except Exception as e:
+                logger.debug(f"Failed to edit status_msg during upload to {name}: {e}")
         
         res = await func()
         if res: return res
@@ -108,9 +116,14 @@ async def upload_file(session, file_path, expiration="1h", status_msg=None):
 
 async def download_url_simple(session, url):
     if not url: return None
+    # Only allow configured domains to prevent SSRF/internal access
+    if not any(d in url for d in config.ALLOWED_DOMAINS):
+        return None
     filename = "unknown.mp3"
-    try: filename = url.split('?')[0].split('/')[-1]
-    except: pass
+    try:
+        filename = url.split('?')[0].split('/')[-1]
+    except Exception as e:
+        logger.debug(f"Failed to parse filename from url: {e}")
     unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     if '.' in filename: ext = filename.split('.')[-1].lower()
     else: ext = "mp3"
@@ -118,11 +131,20 @@ async def download_url_simple(session, url):
     try:
         async with session.get(url) as resp:
             if resp.status != 200: return None
+            # Respect content-length header to avoid large downloads
+            content_length = resp.headers.get('content-length')
+            if content_length:
+                try:
+                    if int(content_length) > int(17.5 * 1024 * 1024):
+                        return None
+                except Exception as e:
+                    logger.debug(f"Invalid content-length header: {e}")
             with open(path, 'wb') as f:
                 async for chunk in resp.content.iter_chunked(64 * 1024):
                     f.write(chunk)
         return path
-    except:
+    except Exception as e:
+        logger.debug(f"download_url_simple error for {url}: {e}")
         return None
 
 async def download_file(ctx, url_arg, status_msg=None):
@@ -133,8 +155,10 @@ async def download_file(ctx, url_arg, status_msg=None):
         filename = ctx.message.attachments[0].filename
     elif url_arg:
         target_url = url_arg
-        try: filename = target_url.split('?')[0].split('/')[-1]
-        except: pass
+        try:
+            filename = target_url.split('?')[0].split('/')[-1]
+        except Exception as e:
+            logger.debug(f"Failed to parse filename from target_url: {e}")
     
     if not target_url or not any(d in target_url for d in config.ALLOWED_DOMAINS):
         msg = "i only accept links from cdn.discordapp.com"
@@ -142,7 +166,11 @@ async def download_file(ctx, url_arg, status_msg=None):
         else: await send_status(ctx, msg)
         return None, None
 
-    if status_msg: await status_msg.edit(content="downloading...")
+    if status_msg:
+        try:
+            await status_msg.edit(content="downloading...")
+        except Exception as e:
+            logger.debug(f"Failed to edit status_msg before download: {e}")
     unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     if '.' in filename: ext = filename.split('.')[-1].lower()
     else: ext = "mp3"
@@ -267,6 +295,7 @@ async def check_providers(session):
             async with session.get(url, timeout=5) as resp:
                 lat = (time.monotonic() - t0) * 1000
                 results[name] = (resp.status, f"{lat:.0f}ms")
-        except:
+        except Exception as e:
+            logger.debug(f"Provider check failed for {name}: {e}")
             results[name] = ("down", "N/A")
     return results

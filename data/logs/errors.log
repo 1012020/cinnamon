@@ -98,3 +98,21 @@
 [2026-03-06T05:28:14.796969] [ERROR   ] Command error: 2db - The check functions for command 2db failed. | user_id=1392892548032368803 | username=n6y5
 [2026-03-06T21:36:47.930565] [ERROR   ] Command error: unknown - Command "achievments" is not found | user_id=1423665222870241422 | username=builderg1rl
 [2026-03-06T21:40:03.463352] [ERROR   ] Command error: unknown - Command "community" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-07T22:48:21.892968] [ERROR   ] Command error: unknown - Command "!oUI6n_a9KsKvU60vPahXfL_ODXKfnVHDRoOwCRfKbrE" is not found | user_id=1106905452119339068 | username=brianlist2993
+[2026-03-08T07:40:20.978539] [ERROR   ] Command error: unknown - Command "image" is not found | user_id=1467374744364908707 | username=5fckk
+[2026-03-08T07:40:35.025900] [ERROR   ] Command error: unknown - Command "tmg" is not found | user_id=1467374744364908707 | username=5fckk
+[2026-03-08T14:15:59.333553] [ERROR   ] Command error: intro - The check functions for command intro failed. | user_id=1106905452119339068 | username=urlocaldawg
+[2026-03-08T14:41:13.234042] [ERROR   ] Command error: stereobait - The check functions for command stereobait failed. | user_id=1106905452119339068 | username=urlocaldawg
+[2026-03-08T15:23:18.203877] [ERROR   ] Command error: unknown - Command "ogg" is not found | user_id=1106905452119339068 | username=urlocaldawg
+[2026-03-08T19:34:20.739987] [ERROR   ] Command error: unknown - Command "fullbaitenable" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-08T19:34:24.748771] [ERROR   ] Command error: unknown - Command "fullbaitenabled" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-08T19:34:56.758187] [ERROR   ] Command error: unknown - Command "enablefullbait" is not found | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-09T02:37:43.309466] [ERROR   ] Command error: unknown - Command "reedeem" is not found | user_id=1208836383733710952 | username=ghostmanewashere
+[2026-03-09T02:55:03.497957] [ERROR   ] Command error: fullbait - Command raised an exception: PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'A_lei_dos_humanos_applyingvocal-forwardloudness_fullbait.ogg' | user_id=1299725266905595974 | username=0_d886
+[2026-03-13T10:22:30.853271] [ERROR   ] Command error: intro - The check functions for command intro failed. | user_id=1423665222870241422 | username=builderg1rl
+[2026-03-16T19:12:04.433257] [ERROR   ] Command error: 32mono - The check functions for command 32mono failed. | user_id=1392892548032368803 | username=n6y5
+[2026-03-16T19:52:36.154391] [ERROR   ] Command error: unknown - Command "pekoramethod" is not found | user_id=1249721512265781358 | username=6w9w
+[2026-03-17T00:02:02.945945] [ERROR   ] Command error: unknown - Command "xcm,xmzc,zxmc,zx" is not found | user_id=1133373703841914900 | username=robloxrevival
+[2026-03-17T00:02:05.490054] [ERROR   ] Command error: unknown - Command "hlpefewfxf" is not found | user_id=1133373703841914900 | username=robloxrevival
+[2026-03-17T00:07:28.737428] [ERROR   ] Command error: 32mono - The check functions for command 32mono failed. | user_id=1133373703841914900 | username=robloxrevival
+[2026-03-17T00:08:04.779734] [ERROR   ] Command error: stats - The check functions for command stats failed. | user_id=1133373703841914900 | username=robloxrevival

@@ -15,6 +15,27 @@ import random
 import shutil
 import os
 import uuid
+from cogs.utils.logging_system import get_logger
+
+logger = get_logger()
+
+# IDs rotation helper to avoid unbounded growth
+MAX_IDS_LINES = 10_000
+
+def _append_id_log(line: str):
+    path = "data/IDs.txt"
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+        # Rotate if too large
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        if len(lines) > MAX_IDS_LINES:
+            with open(path, "w", encoding="utf-8") as f:
+                f.writelines(lines[-MAX_IDS_LINES:])
+    except Exception:
+        pass
 
 class ToolCommands(commands.Cog):
     @commands.command(name='embed')
@@ -99,7 +120,8 @@ class ToolCommands(commands.Cog):
             try:
                 with open(self.keys_file, "r") as f:
                     return json.load(f)
-            except:
+            except Exception as e:
+                logger.error(f"Failed to load keys file: {e}")
                 return {}
         return {}
 
@@ -119,7 +141,8 @@ class ToolCommands(commands.Cog):
                             # unknown format, skip
                             continue
                     return normalized
-            except:
+            except Exception as e:
+                logger.error(f"Failed to load presets: {e}")
                 return {}
         return {}
 
@@ -128,8 +151,8 @@ class ToolCommands(commands.Cog):
             # Save in the normalized dict format
             with open(self.presets_file, 'w') as f:
                 json.dump(self.presets, f, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to save presets: {e}")
     
     def _save_keys(self):
         """Save keys to file"""
@@ -198,10 +221,9 @@ class ToolCommands(commands.Cog):
             random_num = random.randint(100000, 999999)
             output_filename = f"hex_{random_num}.txt"
             await run_blocking(write_file, output_filename, hex_string.encode('utf-8'))
-            # Save ID to IDs.txt
+            # Save ID to IDs.txt (rotating)
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open("data/IDs.txt", "a") as f:
-                f.write(f"hash: {audio_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}\n")
+            _append_id_log(f"hash: {audio_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}")
             await msg.delete()
             await send_status(ctx, file=discord.File(output_filename))
             if os.path.exists(output_filename): os.remove(output_filename)
@@ -246,10 +268,9 @@ class ToolCommands(commands.Cog):
             random_num = random.randint(100000, 999999)
             filename = f"hash_{random_num}.txt"
             await run_blocking(write_file, filename, final_string.encode('utf-8'))
-            # Save ID to IDs.txt
+            # Save ID to IDs.txt (rotating)
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open("data/IDs.txt", "a") as f:
-                f.write(f"hash: {target_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}\n")
+            _append_id_log(f"hash: {target_id} - {ctx.author.name} - {ctx.author.id} - {timestamp}")
             await msg.delete()
             await send_status(ctx, "only works on certain boomboxes", file=discord.File(filename))
             if os.path.exists(filename): os.remove(filename)
@@ -282,7 +303,7 @@ class ToolCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def gen_key(self, ctx, count: int = 1):
         """Generate activation keys for the role"""
-        if ctx.author.id != 1423665222870241422:
+        if ctx.author.id != config.OWNER_ID:
             await send_status(ctx, "error: you don't have permission to generate keys.")
             return
         
@@ -312,7 +333,7 @@ class ToolCommands(commands.Cog):
     @commands.command(name='postkeys')
     async def post_keys(self, ctx):
         """Post a live message of available keys that updates on redemption (owner only)"""
-        if ctx.author.id != 1423665222870241422:
+        if ctx.author.id != config.OWNER_ID:
             await send_status(ctx, "error: owner only.")
             return
         
@@ -633,6 +654,12 @@ class ToolCommands(commands.Cog):
                 if step.startswith('mp3bait'):
                     parts = step.split()
                     if len(parts) == 3:
+                        # Validate that preset paths refer to audio files to avoid arbitrary local paths
+                        AUDIO_EXTS = {'.mp3', '.ogg', '.wav', '.flac', '.m4a'}
+                        if not (os.path.splitext(parts[1])[1].lower() in AUDIO_EXTS and
+                                os.path.splitext(parts[2])[1].lower() in AUDIO_EXTS):
+                            await send_status(ctx, "error: mp3bait paths must be audio files.", status_msg=msg)
+                            return
                         decoy_path = parts[1]
                         hidden_path = parts[2]
                         out_path = f"mp3bait_{uuid.uuid4().hex}.mp3"

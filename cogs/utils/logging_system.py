@@ -72,14 +72,14 @@ class Logger:
                 else:
                     try:
                         os.replace(old_path, new_path)
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"Rotate rename error: {e}")
         
         # Rename current to .1
         try:
             os.replace(log_path, f"{base}.1")
-        except:
-            pass
+        except Exception as e:
+            print(f"Rotate replace error: {e}")
     
     def _format_message(self, level: LogLevel, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Format log message"""
@@ -110,8 +110,8 @@ class Logger:
             with open(self.json_log, "a", encoding="utf-8") as f:
                 json.dump(data, f, separators=(',', ':'))
                 f.write("\n")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Failed to write structured log: {e}")
     
     def log(self, level: LogLevel, message: str, **context) -> None:
         """
@@ -237,8 +237,8 @@ def cleanup_old_logs(log_dir: str = "data/logs", days: int = 30) -> int:
                 try:
                     os.remove(filepath)
                     deleted += 1
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Failed to remove old log {filepath}: {e}")
     
     return deleted
 

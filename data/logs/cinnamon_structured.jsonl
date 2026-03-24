@@ -76,3 +76,50 @@
 {"timestamp":"2026-03-06T21:48:31.071552","level":"INFO","message":"Bot shutting down","logger":"cinnamon"}
 {"timestamp":"2026-03-06T21:53:24.753507","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
 {"timestamp":"2026-03-06T21:53:25.906557","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:58:40.406758","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-06T21:58:41.573797","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-07T22:48:21.906852","level":"ERROR","message":"Command error: unknown - Command \"!oUI6n_a9KsKvU60vPahXfL_ODXKfnVHDRoOwCRfKbrE\" is not found","logger":"cinnamon","context":{"user_id":"1106905452119339068","username":"brianlist2993"}}
+{"timestamp":"2026-03-08T07:40:20.978539","level":"ERROR","message":"Command error: unknown - Command \"image\" is not found","logger":"cinnamon","context":{"user_id":"1467374744364908707","username":"5fckk"}}
+{"timestamp":"2026-03-08T07:40:35.025900","level":"ERROR","message":"Command error: unknown - Command \"tmg\" is not found","logger":"cinnamon","context":{"user_id":"1467374744364908707","username":"5fckk"}}
+{"timestamp":"2026-03-08T14:08:30.096261","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-08T14:08:36.806870","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-08T14:15:59.346132","level":"ERROR","message":"Command error: intro - The check functions for command intro failed.","logger":"cinnamon","context":{"user_id":"1106905452119339068","username":"urlocaldawg"}}
+{"timestamp":"2026-03-08T14:41:13.235055","level":"ERROR","message":"Command error: stereobait - The check functions for command stereobait failed.","logger":"cinnamon","context":{"user_id":"1106905452119339068","username":"urlocaldawg"}}
+{"timestamp":"2026-03-08T15:23:18.204382","level":"ERROR","message":"Command error: unknown - Command \"ogg\" is not found","logger":"cinnamon","context":{"user_id":"1106905452119339068","username":"urlocaldawg"}}
+{"timestamp":"2026-03-08T19:34:04.233902","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-08T19:34:09.887322","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-08T19:34:20.740989","level":"ERROR","message":"Command error: unknown - Command \"fullbaitenable\" is not found","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-08T19:34:24.749772","level":"ERROR","message":"Command error: unknown - Command \"fullbaitenabled\" is not found","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-08T19:34:56.759186","level":"ERROR","message":"Command error: unknown - Command \"enablefullbait\" is not found","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-08T21:09:15.070112","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-08T21:09:16.278677","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-09T02:37:43.309466","level":"ERROR","message":"Command error: unknown - Command \"reedeem\" is not found","logger":"cinnamon","context":{"user_id":"1208836383733710952","username":"ghostmanewashere"}}
+{"timestamp":"2026-03-09T02:55:03.497957","level":"ERROR","message":"Command error: fullbait - Command raised an exception: PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'A_lei_dos_humanos_applyingvocal-forwardloudness_fullbait.ogg'","logger":"cinnamon","context":{"user_id":"1299725266905595974","username":"0_d886"}}
+{"timestamp":"2026-03-13T10:18:17.496556","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-13T10:18:24.463297","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-13T10:22:30.854272","level":"ERROR","message":"Command error: intro - The check functions for command intro failed.","logger":"cinnamon","context":{"user_id":"1423665222870241422","username":"builderg1rl"}}
+{"timestamp":"2026-03-13T10:54:47.614573","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-13T10:55:59.620533","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-13T10:56:00.872769","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-13T11:08:00.506885","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-13T11:08:01.686739","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-13T19:08:15.365755","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-13T19:08:20.950338","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-15T20:44:52.873515","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-15T20:44:59.701582","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-16T11:04:28.790255","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-16T11:04:34.540588","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-16T12:20:24.478995","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-16T12:20:30.244048","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-16T19:12:04.435004","level":"ERROR","message":"Command error: 32mono - The check functions for command 32mono failed.","logger":"cinnamon","context":{"user_id":"1392892548032368803","username":"n6y5"}}
+{"timestamp":"2026-03-16T19:52:36.156397","level":"ERROR","message":"Command error: unknown - Command \"pekoramethod\" is not found","logger":"cinnamon","context":{"user_id":"1249721512265781358","username":"6w9w"}}
+{"timestamp":"2026-03-17T00:02:02.946946","level":"ERROR","message":"Command error: unknown - Command \"xcm,xmzc,zxmc,zx\" is not found","logger":"cinnamon","context":{"user_id":"1133373703841914900","username":"robloxrevival"}}
+{"timestamp":"2026-03-17T00:02:05.491145","level":"ERROR","message":"Command error: unknown - Command \"hlpefewfxf\" is not found","logger":"cinnamon","context":{"user_id":"1133373703841914900","username":"robloxrevival"}}
+{"timestamp":"2026-03-17T00:07:28.738429","level":"ERROR","message":"Command error: 32mono - The check functions for command 32mono failed.","logger":"cinnamon","context":{"user_id":"1133373703841914900","username":"robloxrevival"}}
+{"timestamp":"2026-03-17T00:08:04.780865","level":"ERROR","message":"Command error: stats - The check functions for command stats failed.","logger":"cinnamon","context":{"user_id":"1133373703841914900","username":"robloxrevival"}}
+{"timestamp":"2026-03-19T08:32:37.687453","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-19T08:32:44.001782","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-20T19:02:18.403288","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-20T19:02:24.327759","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}
+{"timestamp":"2026-03-24T18:33:01.702658","level":"INFO","message":"Bot starting up","logger":"cinnamon"}
+{"timestamp":"2026-03-24T18:33:06.798683","level":"INFO","message":"Admin dashboard started on http://127.0.0.1:5000","logger":"cinnamon"}

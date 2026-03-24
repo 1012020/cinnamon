@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import random
+import json
 import shutil
 import uuid
 import config
@@ -9,10 +10,29 @@ from cogs.utils.helpers import run_blocking, is_allowed_location, send_error, cl
 from cogs.utils.settings import get_fullbait_mode, set_fullbait_mode
 from cogs.utils.network import download_file, download_url_simple, upload_file, download_sc_yt_logic
 from cogs.utils import audio_processing as ap
+from cogs.utils.logging_system import get_logger
+
+logger = get_logger()
 
 class AudioCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        if not hasattr(bot, "fullbait_queue"):
+            bot.fullbait_queue = []
+        # Persistent queue file path (workspace_root/optimized cinnamon/data/fullbait_queue.json)
+        try:
+            root_dir = os.path.dirname(os.path.dirname(__file__))
+            self._fullbait_queue_path = os.path.join(root_dir, "data", "fullbait_queue.json")
+            if os.path.exists(self._fullbait_queue_path):
+                try:
+                    with open(self._fullbait_queue_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            bot.fullbait_queue = data
+                except Exception:
+                    bot.fullbait_queue = []
+        except Exception:
+            self._fullbait_queue_path = None
 
     @commands.command(name='download')
     @commands.check(is_allowed_location)
@@ -54,8 +74,8 @@ class AudioCommands(commands.Cog):
                     await send_file_checked(ctx, upload_path, caption=f"pekora.zip ({file_size:.2f}mb) {elapsed}", status_msg=msg)
                     try:
                         await msg.delete()
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Failed to delete status message: {e}")
                     if os.path.exists(upload_path): os.remove(upload_path)
                 except Exception as e:
                     await send_error(ctx, e, status_msg=msg)
@@ -121,8 +141,10 @@ class AudioCommands(commands.Cog):
         elif arg1 and arg2:
             main_url = arg1
             intro_url = arg2
-            try: original_name = arg1.split("?")[0].split("/")[-1]
-            except: pass
+            try:
+                original_name = arg1.split("?")[0].split("/")[-1]
+            except Exception as e:
+                logger.debug(f"Failed to parse original_name from arg1: {e}")
         else:
             await send_status(ctx, "error: missing inputs.", status_msg=msg)
             if ctx.author.id in self.bot.active_tasks:
@@ -133,6 +155,13 @@ class AudioCommands(commands.Cog):
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             return
+        # Validate domains to avoid SSRF/internal links
+        for input_url in [main_url, intro_url]:
+            if not any(d in input_url for d in config.ALLOWED_DOMAINS):
+                await send_status(ctx, "error: only discord CDN links accepted.", status_msg=msg)
+                if ctx.author.id in self.bot.active_tasks:
+                    del self.bot.active_tasks[ctx.author.id]
+                return
         await send_status(ctx, "downloading main audio...", status_msg=msg)
         main_path = await download_url_simple(self.bot.session, main_url)
         if not main_path:
@@ -156,7 +185,7 @@ class AudioCommands(commands.Cog):
             await send_status(ctx, "stitching audio...", status_msg=msg)
             ext = main_path.split('.')[-1].lower()
             clean_name = clean_filename(original_name)
-            output_path = f"{clean_name}_intro.{ext}"
+            output_path = f"{clean_name}_intro_{uuid.uuid4().hex[:8]}.{ext}"
             format_map = {"m4a": "ipod", "jpg": "mp3", "png": "mp3"}
             export_fmt = format_map.get(ext, ext)
             await run_blocking(ap.process_intro, main_path, intro_path, output_path, export_fmt)
@@ -166,11 +195,25 @@ class AudioCommands(commands.Cog):
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             intro_ext = intro_path.split('.')[-1].lower()
-            intro_save_name = f"intro_{ctx.author.name}_{ctx.author.id}_{timestamp}.{intro_ext}"
+            safe_author = clean_filename(ctx.author.name) or str(ctx.author.id)
+            intro_save_name = f"intro_{safe_author}_{ctx.author.id}_{timestamp}.{intro_ext}"
             intro_save_path = os.path.join("assets", "intro", intro_save_name)
             with open(intro_path, "rb") as src:
                 with open(intro_save_path, "wb") as dst:
                     dst.write(src.read())
+            # Keep only the most recent 50 intros
+            try:
+                intro_files = sorted(
+                    [f for f in os.listdir("assets/intro") if f.startswith("intro_")],
+                    key=lambda f: os.path.getmtime(os.path.join("assets/intro", f))
+                )
+                for old in intro_files[:-50]:
+                    try:
+                        os.remove(os.path.join("assets/intro", old))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
             
             file_size = os.path.getsize(output_path) / (1024 * 1024)
             elapsed = get_elapsed_time(self.bot, ctx.author.id)
@@ -399,7 +442,35 @@ class AudioCommands(commands.Cog):
                 del self.bot.active_tasks[ctx.author.id]
             return
 
-        selected_bait = random.choice(all_baits)
+        # Maintain a per-session shuffled queue to avoid immediate repeats
+        # Reinitialize queue if empty or file set has changed
+        queue = getattr(self.bot, "fullbait_queue", [])
+        try:
+            if not queue or set(queue) != set(all_baits):
+                shuffled = all_baits.copy()
+                random.shuffle(shuffled)
+                self.bot.fullbait_queue = shuffled
+            selected_bait = self.bot.fullbait_queue.pop(0)
+            # Save updated queue to disk if possible
+            try:
+                if getattr(self, "_fullbait_queue_path", None):
+                    os.makedirs(os.path.dirname(self._fullbait_queue_path), exist_ok=True)
+                    with open(self._fullbait_queue_path, "w", encoding="utf-8") as f:
+                        json.dump(self.bot.fullbait_queue, f)
+            except Exception:
+                pass
+        except Exception:
+            # Fallback to uniform random choice on any unexpected error
+            selected_bait = random.choice(all_baits)
+            self.bot.fullbait_queue = [b for b in all_baits if b != selected_bait]
+            try:
+                if getattr(self, "_fullbait_queue_path", None):
+                    os.makedirs(os.path.dirname(self._fullbait_queue_path), exist_ok=True)
+                    with open(self._fullbait_queue_path, "w", encoding="utf-8") as f:
+                        json.dump(self.bot.fullbait_queue, f)
+            except Exception:
+                pass
+
         bait_path = os.path.join(fullbaits_dir, selected_bait)
         clean_name = clean_filename(original_filename)
         output_file = f"{clean_name}_fullbait.ogg"
@@ -449,7 +520,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def enable_fullbait_for_all(self, ctx):
         # Only allow a specific user to toggle this
-        if ctx.author.id != 1423665222870241422:
+        if ctx.author.id != config.OWNER_ID:
             await send_status(ctx, "error: you are not allowed to change this setting.")
             return
         set_fullbait_mode('everyone_watermark')
@@ -459,7 +530,7 @@ class AudioCommands(commands.Cog):
     @commands.check(is_allowed_location)
     async def disable_fullbait_for_all(self, ctx):
         # Only allow a specific user to toggle this
-        if ctx.author.id != 1423665222870241422:
+        if ctx.author.id != config.OWNER_ID:
             await send_status(ctx, "error: you are not allowed to change this setting.")
             return
         set_fullbait_mode('role_only')
@@ -732,7 +803,12 @@ class AudioCommands(commands.Cog):
             if ctx.author.id in self.bot.active_tasks:
                 del self.bot.active_tasks[ctx.author.id]
             if 'hidden_path' in locals() and os.path.exists(hidden_path): os.remove(hidden_path)
-            
+            if 'stitched_temp' in locals() and os.path.exists(stitched_temp):
+                try:
+                    os.remove(stitched_temp)
+                except Exception:
+                    pass
+
             if 'output_file' in locals() and os.path.exists(output_file): os.remove(output_file)
 
     @commands.command(name='img')

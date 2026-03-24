@@ -41,9 +41,25 @@ class AdminDashboard:
         self.app = Flask(__name__, template_folder=template_dir)
         self.app.secret_key = secrets.token_hex(32)
         
-        # Simple auth token (override with ADMIN_TOKEN env var)
+        # ADMIN_TOKEN env var with fallback for convenience
+        # Note: setting a default here is less secure; consider using an env var in production.
         self.auth_token = os.getenv("ADMIN_TOKEN", "cinnamon-admin")
-        
+
+        # Simple per-request auth for all /api/* endpoints
+        @self.app.before_request
+        def _require_api_auth():
+            try:
+                if request.path.startswith("/api/"):
+                    # Allow local browser access without token for convenience
+                    remote = (request.remote_addr or "").strip()
+                    host_header = (request.host or "")
+                    if remote in ("127.0.0.1", "::1") or host_header.startswith(str(self.host)):
+                        return None
+                    if not self._is_authorized(request):
+                        return jsonify({"error": "Unauthorized"}), 401
+            except Exception:
+                return jsonify({"error": "Unauthorized"}), 401
+
         self._setup_routes()
     
     def _setup_routes(self):
@@ -432,22 +448,24 @@ class AdminDashboard:
         message = await channel.send(content)
         tool_cog.keys_message_id = message.id
         return str(message.id)
-
-
+    def _run_shell(self, command: str) -> Dict[str, Any]:
         """Run shell command in project root"""
-        completed = subprocess.run(
-            command,
-            cwd=self.project_root,
-            capture_output=True,
-            text=True,
-            shell=True,
-            timeout=60
-        )
-        output = (completed.stdout or "") + ("\n" + completed.stderr if completed.stderr else "")
-        return {
-            "exit_code": completed.returncode,
-            "output": output[-20000:]
-        }
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                shell=True,
+                timeout=60
+            )
+            output = (completed.stdout or "") + ("\n" + completed.stderr if completed.stderr else "")
+            return {
+                "exit_code": completed.returncode,
+                "output": output[-20000:]
+            }
+        except Exception as e:
+            return {"exit_code": -1, "output": f"error: {str(e)}"}
 
     def _run_python(self, code: str) -> Dict[str, Any]:
         """Run Python snippet with dashboard globals"""
@@ -651,7 +669,6 @@ class AdminDashboard:
             debug: Enable debug mode
         """
         print(f"Starting admin dashboard on http://{self.host}:{self.port}")
-        print(f"Auth token: {self.auth_token}")
         self.app.run(host=self.host, port=self.port, debug=debug, use_reloader=False)
     
     def run_async(self):
