@@ -188,6 +188,27 @@
         <button class="refresh-btn" onclick="loadLogs()">Refresh Logs</button>
         <div class="log-container" id="logs"></div>
 
+        <h2>Applications</h2>
+        <button class="refresh-btn" onclick="loadApplications()">Refresh Applications</button>
+        <table id="applications-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Applicant</th>
+                    <th>Submitted</th>
+                    <th>Heard From</th>
+                    <th>Invited By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="applications-body"></tbody>
+        </table>
+
+        <div class="control-card" style="margin-top:12px;">
+            <h3>Application Details</h3>
+            <div class="output-box" id="app-detail">Select an application to view details.</div>
+        </div>
+
         <h2>Control Center</h2>
         <div class="control-card" style="margin-bottom: 12px;">
             <h3>Admin Token</h3>
@@ -484,9 +505,76 @@
         }
 
         document.getElementById('admin-token').value = getToken();
+        // Applications UI
+        async function loadApplications() {
+            try {
+                const res = await fetch('/api/applications?status=pending');
+                const data = await res.json();
+                const tbody = document.getElementById('applications-body');
+                tbody.innerHTML = '';
+                (data.applications || []).forEach(app => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${app.id}</td>
+                        <td>${app.username}</td>
+                        <td>${app.created_at ? new Date(app.created_at).toLocaleString() : ''}</td>
+                        <td>${(app.heard_from || '')}</td>
+                        <td>${(app.invited_by || '')}</td>
+                        <td>
+                            <div class="btn-row">
+                                <button class="btn" onclick="showApp(${app.id})">Show</button>
+                                <button class="btn" onclick="decideApp(${app.id}, 'accept')">Accept</button>
+                                <button class="btn btn-danger" onclick="decideApp(${app.id}, 'reject')">Reject</button>
+                            </div>
+                        </td>`;
+                });
+            } catch (e) {
+                setStatus('Failed to load applications.', false);
+            }
+        }
+
+        async function showApp(appId) {
+            try {
+                const res = await fetch(`/api/application/${appId}`);
+                const data = await res.json();
+                if (!res.ok) { setStatus(`Failed to load app: ${data.error || 'Unknown'}`, false); return; }
+                const app = data.application;
+                let txt = `Applicant: ${app.username} (${app.user_id})\nSubmitted: ${app.created_at ? new Date(app.created_at).toLocaleString() : ''}\nStatus: ${app.status}\n\nWhy:\n${app.reason || ''}\n\nWhere heard:\n${app.heard_from || ''}\n\nInvited (who + why):\n${app.invited_by || ''}\n\nWhat is cinnamon?:\n${app.what_is || ''}\n`;
+                if (app.extras && app.extras.length) {
+                    txt += '\nExtras:\n';
+                    app.extras.forEach(e => {
+                        txt += `- ${e.id}: ${e.question}\n  answer: ${e.answer}\n`;
+                        if (e.passed !== undefined) txt += `  passed: ${e.passed}\n`;
+                        if (e.valid !== undefined) txt += `  valid: ${e.valid}\n`;
+                        if (e.selected) txt += `  selected: ${e.selected}\n`;
+                    });
+                }
+                document.getElementById('app-detail').textContent = txt;
+            } catch (e) {
+                setStatus('Failed to fetch application details.', false);
+            }
+        }
+
+        async function decideApp(appId, decision) {
+            try {
+                const token = getToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['X-Admin-Token'] = token;
+                const res = await fetch('/api/application/decide', { method: 'POST', headers, body: JSON.stringify({ id: appId, decision }) });
+                const data = await res.json();
+                if (!res.ok || !data.success) { setStatus(`Decision failed: ${data.error || 'Unknown'}`, false); return; }
+                setStatus(`Application #${appId} ${data.status}`, true);
+                await loadApplications();
+                await showApp(appId);
+            } catch (e) {
+                setStatus('Failed to decide application.', false);
+            }
+        }
+
         loadStats();loadCommands();loadUsers();loadActiveTasks();loadLogs();
+        loadApplications();
         loadCapabilities();
-        setInterval(() => { loadStats(); loadActiveTasks(); }, 30000);
+        setInterval(() => { loadStats(); loadActiveTasks(); loadApplications(); }, 30000);
     </script>
 </body>
 </html>

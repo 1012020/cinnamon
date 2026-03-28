@@ -1,23 +1,23 @@
 {
-  "total_commands": 1601,
+  "total_commands": 1647,
   "commands": {
-    "hash": 99,
+    "hash": 110,
     "img": 171,
     "loud": 61,
     "createchannels": 46,
-    "fullbait": 196,
-    "help": 77,
+    "fullbait": 211,
+    "help": 79,
     "2db": 12,
     "mp3bait": 43,
     "redeem": 73,
     "genkey": 6,
-    "download": 95,
-    "compress": 50,
+    "download": 97,
+    "compress": 53,
     "stats": 11,
     "32mono": 116,
-    "convert": 77,
-    "loudv2": 76,
-    "hex": 29,
+    "convert": 79,
+    "loudv2": 78,
+    "hex": 30,
     "rape": 7,
     "status": 1,
     "intro": 16,
@@ -28,7 +28,7 @@
     "presets": 21,
     "presetdelete": 2,
     "embed": 70,
-    "nuke": 4,
+    "nuke": 9,
     "stereobait": 87,
     "fullbaitallowed": 4,
     "revoke": 2,
@@ -41,7 +41,8 @@
     "follow": 2,
     "setbio": 1,
     "achievements": 1,
-    "challenge": 15
+    "challenge": 15,
+    "apply": 3
   },
   "users": {
     "1425197398816329778": {
@@ -56,13 +57,13 @@
     },
     "1110764678558265404": {
       "username": "sac.mp3",
-      "commands": 98,
-      "last_command": "2026-03-20T21:01:19.983856"
+      "commands": 99,
+      "last_command": "2026-03-28T23:30:46.893944"
     },
     "1053600471278956615": {
       "username": "32tracks",
-      "commands": 161,
-      "last_command": "2026-03-22T22:20:27.133603"
+      "commands": 163,
+      "last_command": "2026-03-25T04:46:37.234607"
     },
     "787860220030222336": {
       "username": "kaiori",
@@ -71,13 +72,13 @@
     },
     "794619423616532561": {
       "username": "ftsf",
-      "commands": 53,
-      "last_command": "2026-03-15T21:35:39.031636"
+      "commands": 54,
+      "last_command": "2026-03-24T20:28:13.323121"
     },
     "1423665222870241422": {
       "username": "builderg1rl",
-      "commands": 474,
-      "last_command": "2026-03-20T19:02:31.606808"
+      "commands": 484,
+      "last_command": "2026-03-28T23:37:04.309490"
     },
     "1249721512265781358": {
       "username": "6w9w",
@@ -96,8 +97,8 @@
     },
     "785259144189181972": {
       "username": "jewlymon",
-      "commands": 31,
-      "last_command": "2026-03-09T12:09:39.339937"
+      "commands": 45,
+      "last_command": "2026-03-26T19:53:10.705610"
     },
     "747934443389321327": {
       "username": "wx1q",
@@ -111,8 +112,8 @@
     },
     "1392892548032368803": {
       "username": "n6y5",
-      "commands": 57,
-      "last_command": "2026-03-22T06:59:59.917118"
+      "commands": 63,
+      "last_command": "2026-03-28T22:40:27.775280"
     },
     "841183412291239937": {
       "username": "jewel.xxet",
@@ -126,8 +127,8 @@
     },
     "1475839298413793442": {
       "username": "falsemedia",
-      "commands": 33,
-      "last_command": "2026-03-22T17:24:00.098542"
+      "commands": 36,
+      "last_command": "2026-03-28T21:20:52.524370"
     },
     "984056387879440384": {
       "username": "drinkarizona.com",
@@ -136,8 +137,8 @@
     },
     "1299725266905595974": {
       "username": "0_d886",
-      "commands": 27,
-      "last_command": "2026-03-22T05:52:46.886272"
+      "commands": 29,
+      "last_command": "2026-03-25T08:51:55.345314"
     },
     "1375888788802375821": {
       "username": "egorkarecords.",
@@ -240,9 +241,9 @@
       "last_command": "2026-03-09T14:06:10.112069"
     },
     "1475031009362706512": {
-      "username": "smokingthraxxinbaghdad",
-      "commands": 7,
-      "last_command": "2026-03-13T19:11:40.314847"
+      "username": "aloneintheclub",
+      "commands": 13,
+      "last_command": "2026-03-26T19:32:59.398440"
     },
     "1133373703841914900": {
       "username": "robloxrevival",
@@ -263,13 +264,18 @@
       "username": "todesfahne",
       "commands": 5,
       "last_command": "2026-03-18T12:58:34.338096"
+    },
+    "1259937309252517939": {
+      "username": "noonehere9282",
+      "commands": 1,
+      "last_command": "2026-03-26T22:12:05.387473"
     }
   },
   "errors": {
     "mp3bait": 3,
     "rape": 2,
-    "download": 2,
-    "fullbait": 7,
+    "download": 3,
+    "fullbait": 8,
     "img": 1,
     "createpreset": 2,
     "loud": 2,
@@ -278,6 +284,7 @@
     "revoke": 1,
     "2db": 1,
     "intro": 2,
-    "stereobait": 1
+    "stereobait": 1,
+    "convert": 1
   }
 }

@@ -67,6 +67,7 @@ class OptimizedBot(commands.Bot):
         # Load Cogs
         await self.load_extension('cogs.audio')
         await self.load_extension('cogs.tools')
+        await self.load_extension('cogs.application')
         # Start auto-backup task
         self.auto_backup.start()
         # Admin dashboard enabled

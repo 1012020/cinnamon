@@ -126,6 +126,68 @@ class AdminDashboard:
                 "bot_connected": self.bot.is_ready() if hasattr(self.bot, "is_ready") else False
             })
 
+        @self.app.route('/api/applications')
+        def api_applications():
+            """List all applications (or filter by status via ?status=pending)"""
+            try:
+                apps = self._load_applications()
+                status = request.args.get('status')
+                if status:
+                    apps = [a for a in apps if a.get('status') == status]
+                return jsonify({"applications": apps})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/application/<int:app_id>')
+        def api_application(app_id: int):
+            """Get a single application by id"""
+            try:
+                apps = self._load_applications()
+                app = next((a for a in apps if int(a.get('id', 0)) == int(app_id)), None)
+                if not app:
+                    return jsonify({"error": "not found"}), 404
+                return jsonify({"application": app})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/application/decide', methods=['POST'])
+        def api_application_decide():
+            """Decide an application (accept/reject). Requires admin token or local access."""
+            try:
+                if not self._is_authorized(request):
+                    # allow local access through before_request convenience, otherwise require token
+                    remote = (request.remote_addr or "").strip()
+                    if remote not in ("127.0.0.1", "::1"):
+                        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+                payload = request.get_json(silent=True) or {}
+                app_id = payload.get('id')
+                decision = (payload.get('decision') or '').lower()
+                reviewer = payload.get('reviewer') or 'web'
+                if not app_id or decision not in ('accept', 'reject'):
+                    return jsonify({"success": False, "error": "invalid payload"}), 400
+
+                # Prefer using the Application cog's review method if available
+                app_cog = self.bot.get_cog('ApplicationCog')
+                if app_cog and hasattr(app_cog, 'review_application'):
+                    result = self._run_coro(app_cog.review_application(int(app_id), decision, reviewer))
+                    return jsonify(result)
+
+                # Fallback: modify file directly (best-effort)
+                apps = self._load_applications()
+                app = next((a for a in apps if int(a.get('id', 0)) == int(app_id)), None)
+                if not app:
+                    return jsonify({"success": False, "error": "application not found"}), 404
+                if app.get('status') != 'pending':
+                    return jsonify({"success": False, "error": "already reviewed"}), 400
+                app['status'] = 'accepted' if decision == 'accept' else 'rejected'
+                app['reviewed_by'] = reviewer
+                app['reviewed_at'] = datetime.now().isoformat()
+                self._save_applications(apps)
+                return jsonify({"success": True, "status": app['status']})
+            except Exception as e:
+                return jsonify({"success": False, "error": str(e)}), 500
+
         @self.app.route("/api/control/actions")
         def api_control_actions():
             """Get available control actions"""
@@ -378,6 +440,26 @@ class AdminDashboard:
 
     def _keys_file_path(self) -> str:
         return os.path.join(self.data_dir, "keys.json")
+
+    def _apps_file_path(self) -> str:
+        return os.path.join(self.data_dir, "applications.json")
+
+    def _load_applications(self):
+        apps_file = self._apps_file_path()
+        if not os.path.exists(apps_file):
+            return []
+        try:
+            with open(apps_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, list) else data.get('applications', data)
+        except Exception:
+            return []
+
+    def _save_applications(self, apps):
+        apps_file = self._apps_file_path()
+        os.makedirs(os.path.dirname(apps_file), exist_ok=True)
+        with open(apps_file, "w", encoding="utf-8") as f:
+            json.dump(apps, f, indent=2)
 
     def _load_keys_data(self) -> Dict[str, Any]:
         keys_file = self._keys_file_path()

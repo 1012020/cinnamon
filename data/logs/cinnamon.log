@@ -123,3 +123,20 @@
 [2026-03-20T19:02:24.326759] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
 [2026-03-24T18:33:01.690245] [INFO    ] Bot starting up
 [2026-03-24T18:33:06.797683] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-24T20:28:13.759211] [ERROR   ] Command error: download - The check functions for command download failed. | user_id=794619423616532561 | username=ftsf
+[2026-03-25T01:49:49.655623] [ERROR   ] Command error: convert - The check functions for command convert failed. | user_id=1392892548032368803 | username=n6y5
+[2026-03-26T19:26:39.530541] [INFO    ] Bot starting up
+[2026-03-26T19:26:44.397916] [INFO    ] Bot starting up
+[2026-03-26T19:26:51.631341] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-26T19:27:35.503772] [ERROR   ] Command error: fullbait - The check functions for command fullbait failed. | user_id=1475031009362706512 | username=aloneintheclub
+[2026-03-26T19:32:33.218682] [ERROR   ] Command error: unknown - Command "compres" is not found | user_id=1475031009362706512 | username=aloneintheclub
+[2026-03-28T21:00:19.891361] [INFO    ] Bot starting up
+[2026-03-28T21:00:23.664820] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-28T23:16:16.248180] [INFO    ] Bot starting up
+[2026-03-28T23:16:17.463660] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-28T23:29:15.922650] [INFO    ] Bot starting up
+[2026-03-28T23:29:16.879529] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-28T23:35:08.228603] [INFO    ] Bot starting up
+[2026-03-28T23:35:09.260845] [INFO    ] Admin dashboard started on http://127.0.0.1:5000
+[2026-03-28T23:40:53.018727] [INFO    ] Bot starting up
+[2026-03-28T23:40:54.016799] [INFO    ] Admin dashboard started on http://127.0.0.1:5000

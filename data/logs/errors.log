@@ -116,3 +116,7 @@
 [2026-03-17T00:02:05.490054] [ERROR   ] Command error: unknown - Command "hlpefewfxf" is not found | user_id=1133373703841914900 | username=robloxrevival
 [2026-03-17T00:07:28.737428] [ERROR   ] Command error: 32mono - The check functions for command 32mono failed. | user_id=1133373703841914900 | username=robloxrevival
 [2026-03-17T00:08:04.779734] [ERROR   ] Command error: stats - The check functions for command stats failed. | user_id=1133373703841914900 | username=robloxrevival
+[2026-03-24T20:28:13.759211] [ERROR   ] Command error: download - The check functions for command download failed. | user_id=794619423616532561 | username=ftsf
+[2026-03-25T01:49:49.655623] [ERROR   ] Command error: convert - The check functions for command convert failed. | user_id=1392892548032368803 | username=n6y5
+[2026-03-26T19:27:35.503772] [ERROR   ] Command error: fullbait - The check functions for command fullbait failed. | user_id=1475031009362706512 | username=aloneintheclub
+[2026-03-26T19:32:33.218682] [ERROR   ] Command error: unknown - Command "compres" is not found | user_id=1475031009362706512 | username=aloneintheclub
