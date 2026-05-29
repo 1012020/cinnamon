@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Runtime/generated files
+*.log
+in_*.mp3
+in_*.ogg
+in_*.wav
+in_*.flac
+in_*.m4a
+out_*.mp3
+out_*.ogg
+out_*.wav
+out_*.flac
+out_*.m4a
+dl_*.mp3
+temp_*
+hex_*.txt
+hash_*.txt
+mp3bait_*.mp3
+stereobait_*.ogg
+channels_*.wav
+
+# Runtime data (keep docs and folder structure)
+data/backups/
+data/logs/
+data/keys.json
+data/keys_copy.txt
+data/stats.json
+data/history.json
+data/fullbait_queue.json
+data/follows.json
+data/activity.json
+data/achievements.json
+data/applications.json
+data/presets.json
+data/profiles.json
+data/settings.json
+
+# Assets
+# Ignore generated/non-essential asset content.
+assets/intro/
+assets/IDs.txt
+
+# Keep required runtime assets tracked.
+!assets/headah.ogg
+!assets/cinnamon.ogg
+!assets/cinnamon.mp3
+!assets/iccp/custom.icc
+!assets/short baits/**
+!assets/fullbaits/**
+!assets/mp3 baits/**
+!assets/stereobait_files/**
+!assets/img baits/**

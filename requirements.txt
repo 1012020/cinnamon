@@ -1,0 +1,10 @@
+aiohttp>=3.9.0
+discord.py>=2.3.0
+Flask>=3.0.0
+numpy>=1.26.0
+pillow>=10.0.0
+pydub>=0.25.1
+pyloudnorm>=0.1.1
+scipy>=1.11.0
+soundfile>=0.12.1
+yt-dlp>=2025.1.0

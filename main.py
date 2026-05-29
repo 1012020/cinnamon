@@ -299,4 +299,6 @@ async def preview_menu(ctx):
     await send_status(ctx, embed=embed)
 
 if __name__ == "__main__":
+    if not config.TOKEN:
+        raise RuntimeError("DISCORD_BOT_TOKEN is not set. Configure environment variables before running the bot.")
     bot.run(config.TOKEN)

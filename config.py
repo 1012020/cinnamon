@@ -1,7 +1,7 @@
 import os
 
-# Hardcoded token (insecure): replace with your real token if desired.
-TOKEN = "MTQ1ODc5NTA0NTYyODAyMjk1OQ.GBv-Zy.q_fRCyhKSkIjmHERmak8cpk1e5Kz4MOGzNXtso"
+# Required secret. Set this in your environment before starting the bot.
+TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
 
 TARGET_SIZE_MB = 10.0
 MAX_CHANNELS_LIMIT = 32
@@ -20,4 +20,8 @@ ALLOWED_DOMAINS = ["cdn.discordapp.com", "media.discordapp.net"]
 ISRAELITE_ROLE_ID = 1464787461719720133
 
 # Owner ID constant (use config.OWNER_ID rather than hardcoding elsewhere)
-OWNER_ID = 1423665222870241422
+OWNER_ID = int(os.getenv("OWNER_ID", "1423665222870241422"))
+
+# Optional admin dashboard token. Leave unset to restrict privileged API usage
+# to localhost convenience access only.
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")

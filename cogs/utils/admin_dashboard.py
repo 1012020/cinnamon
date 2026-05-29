@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple
 import secrets
 import discord
+import config
 
 
 class AdminDashboard:
@@ -41,9 +42,8 @@ class AdminDashboard:
         self.app = Flask(__name__, template_folder=template_dir)
         self.app.secret_key = secrets.token_hex(32)
         
-        # ADMIN_TOKEN env var with fallback for convenience
-        # Note: setting a default here is less secure; consider using an env var in production.
-        self.auth_token = os.getenv("ADMIN_TOKEN", "cinnamon-admin")
+        # Token-based auth for privileged API routes.
+        self.auth_token = config.ADMIN_TOKEN
 
         # Simple per-request auth for all /api/* endpoints
         @self.app.before_request
@@ -265,6 +265,11 @@ class AdminDashboard:
 
     def _is_authorized(self, req) -> bool:
         """Check admin token authorization"""
+<<<<<<< HEAD
+=======
+        if not self.auth_token:
+            return False
+>>>>>>> 3c7bab1 (chore: add public docs and asset-aware gitignore)
         provided = req.headers.get("X-Admin-Token", "")
         if not provided:
             auth_header = req.headers.get("Authorization", "")
