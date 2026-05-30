@@ -1,6 +1,6 @@
 # Cinnamon
 
-A Discord bot for audio transformation workflows, gated access management, and lightweight operations monitoring.
+A Discord bot for audio making on roblox revivals, uses notepad++ methods
 
 This repository contains:
 - A command-based Discord bot (audio processing, conversion, presets, access keys, applications)
